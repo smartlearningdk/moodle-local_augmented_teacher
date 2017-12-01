@@ -72,26 +72,16 @@ unset($courseid);
 require_login($course);
 
 $systemcontext = context_system::instance();
-$isfrontpage = ($course->id == SITEID);
 
 $frontpagectx = context_course::instance(SITEID);
 
-if ($isfrontpage) {
-    $PAGE->set_pagelayout('admin');
-    require_capability('moodle/site:viewparticipants', $systemcontext);
-} else {
-    $PAGE->set_pagelayout('incourse');
-    require_capability('moodle/course:viewparticipants', $context);
-}
+$PAGE->set_pagelayout('incourse');
+require_capability('moodle/course:viewparticipants', $context);
 
 $rolenamesurl = new moodle_url("$CFG->wwwroot/local/augmented_teacher/mergedmessages.php?contextid=$context->id&sifirst=&silast=");
 
 $rolenames = role_fix_names(get_profile_roles($context), $context, ROLENAME_ALIAS, true);
-if ($isfrontpage) {
-    $rolenames[0] = get_string('allsiteusers', 'role');
-} else {
-    $rolenames[0] = get_string('allparticipants');
-}
+$rolenames[0] = get_string('allparticipants');
 
 // Make sure other roles may not be selected by any means.
 if (empty($rolenames[$roleid])) {
@@ -100,7 +90,7 @@ if (empty($rolenames[$roleid])) {
 
 // No roles to display yet?
 // frontpage course is an exception, on the front page course we should display all users.
-if (empty($rolenames) && !$isfrontpage) {
+if (empty($rolenames)) {
     if (has_capability('moodle/role:assign', $context)) {
         redirect($CFG->wwwroot.'/'.$CFG->admin.'/roles/assign.php?contextid='.$context->id);
     } else {
@@ -238,18 +228,11 @@ if ($groupmenu = groups_print_course_menu($course, $baseurl->out(), true)) {
 if (!isset($hiddenfields['lastaccess'])) {
     // Get minimum lastaccess for this course and display a dropbox to filter by lastaccess going back this far.
     // We need to make it diferently for normal courses and site course.
-    if (!$isfrontpage) {
-        $minlastaccess = $DB->get_field_sql('SELECT min(timeaccess)
+    $minlastaccess = $DB->get_field_sql('SELECT min(timeaccess)
                                                FROM {user_lastaccess}
                                               WHERE courseid = ?
                                                     AND timeaccess != 0', array($course->id));
-        $lastaccess0exists = $DB->record_exists('user_lastaccess', array('courseid' => $course->id, 'timeaccess' => 0));
-    } else {
-        $minlastaccess = $DB->get_field_sql('SELECT min(lastaccess)
-                                               FROM {user}
-                                              WHERE lastaccess != 0');
-        $lastaccess0exists = $DB->record_exists('user', array('lastaccess' => 0));
-    }
+    $lastaccess0exists = $DB->record_exists('user_lastaccess', array('courseid' => $course->id, 'timeaccess' => 0));
 
     $now = usergetmidnight(time());
     $timeaccess = array();
@@ -417,21 +400,12 @@ $userfields = array('username', 'email', 'city', 'country', 'lang', 'timezone', 
 $mainuserfields = user_picture::fields('u', $userfields);
 $extrasql = get_extra_user_fields_sql($context, 'u', '', $userfields);
 
-if ($isfrontpage) {
-    $select = "SELECT $mainuserfields, u.lastaccess$extrasql";
-    $joins[] = "JOIN ($esql) e ON e.id = u.id"; // Everybody on the frontpage usually.
-    if ($accesssince) {
-        $wheres[] = get_user_lastaccess_sql($accesssince);
-    }
-
-} else {
-    $select = "SELECT $mainuserfields, COALESCE(ul.timeaccess, 0) AS lastaccess$extrasql";
-    $joins[] = "JOIN ($esql) e ON e.id = u.id"; // Course enrolled users only.
-    $joins[] = "LEFT JOIN {user_lastaccess} ul ON (ul.userid = u.id AND ul.courseid = :courseid)";
-    $params['courseid'] = $course->id;
-    if ($accesssince) {
-        $wheres[] = get_course_lastaccess_sql($accesssince);
-    }
+$select = "SELECT $mainuserfields, COALESCE(ul.timeaccess, 0) AS lastaccess$extrasql";
+$joins[] = "JOIN ($esql) e ON e.id = u.id"; // Course enrolled users only.
+$joins[] = "LEFT JOIN {user_lastaccess} ul ON (ul.userid = u.id AND ul.courseid = :courseid)";
+$params['courseid'] = $course->id;
+if ($accesssince) {
+    $wheres[] = get_course_lastaccess_sql($accesssince);
 }
 
 // Performance hacks - we preload user contexts together with accounts.
@@ -888,7 +862,7 @@ if ($bulkoperations) {
 
 // Show a search box if all participants don't fit on a single screen.
 if ($totalcount > $perpage) {
-    echo '<form action="index.php" class="searchform"><div><input type="hidden" name="id" value="'.$course->id.'" />';
+    echo '<form action="mergedmessages.php" class="searchform"><div><input type="hidden" name="id" value="'.$course->id.'" />';
     echo '<label for="search">' . get_string('search', 'search') . ' </label>';
     echo '<input type="text" id="search" name="search" value="'.s($search).'" />&nbsp;<input type="submit" value="'.
         get_string('search').'" /></div></form>'."\n";
