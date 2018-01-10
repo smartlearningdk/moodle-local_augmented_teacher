@@ -23,27 +23,22 @@
  * @copyright  (C) 2017 SmartLearning Inc https://www.smartlearning.dk
  */
 
-require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
+defined('MOODLE_INTERNAL') || die();
 
-$formaction = required_param('formaction', PARAM_FILE);
-$id = required_param('id', PARAM_INT);
+// List of observers.
+$observers = array(
 
-$PAGE->set_url('/user/action_redir.php', array('formaction' => $formaction, 'id' => $id));
+    array(
+        'eventname'   => '\core\event\course_content_deleted',
+        'callback'    => 'local_augmented_teacher_observer::course_content_deleted',
+    ),
+    array(
+        'eventname'   => '\core\event\course_deleted',
+        'callback'    => 'local_augmented_teacher_observer::course_deleted',
+    ),
+    array(
+        'eventname'   => '\core\event\course_section_deleted',
+        'callback'    => 'local_augmented_teacher_observer::course_section_deleted',
+    ),
 
-// Add every page will be redirected by this script.
-$actions = array(
-        'mergedmessages.php',
-        'messageselect.php',
-        'reminders.php',
-        'reminders_list.php',
-        );
-
-if (array_search($formaction, $actions) === false) {
-    print_error('unknownuseraction');
-}
-
-if (!confirm_sesskey()) {
-    print_error('confirmsesskeybad');
-}
-
-require_once($formaction);
+);

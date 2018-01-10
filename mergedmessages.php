@@ -73,8 +73,6 @@ require_login($course);
 
 $systemcontext = context_system::instance();
 
-$frontpagectx = context_course::instance(SITEID);
-
 $PAGE->set_pagelayout('incourse');
 require_capability('moodle/course:viewparticipants', $context);
 
@@ -146,7 +144,7 @@ $PAGE->set_pagetype('course-view-' . $course->format);
 $PAGE->add_body_class('path-user');
 $PAGE->set_other_editing_capability('moodle/course:manageactivities');
 
-$PAGE->navbar->add(get_string('pluginname', 'local_augmented_teacher'));
+$PAGE->navbar->add(get_string('mergedmessages', 'local_augmented_teacher'));
 
 $settingnode = $PAGE->settingsnav->find('local_augmented_teacher', navigation_node::TYPE_SETTING);
 $settingnode->make_active();

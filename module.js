@@ -47,6 +47,9 @@ M.local_augmented_teacher.init_shortcode = function(Y) {
         e.preventDefault();
 
         var editorel = Y.one('#edit-messagebodyeditable');
+        if (editorel === null) {
+            editorel = Y.one('#id_messageeditable');
+        }
 
         editorel.focus();
 

@@ -23,27 +23,16 @@
  * @copyright  (C) 2017 SmartLearning Inc https://www.smartlearning.dk
  */
 
-require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
+defined('MOODLE_INTERNAL') || die();
 
-$formaction = required_param('formaction', PARAM_FILE);
-$id = required_param('id', PARAM_INT);
-
-$PAGE->set_url('/user/action_redir.php', array('formaction' => $formaction, 'id' => $id));
-
-// Add every page will be redirected by this script.
-$actions = array(
-        'mergedmessages.php',
-        'messageselect.php',
-        'reminders.php',
-        'reminders_list.php',
-        );
-
-if (array_search($formaction, $actions) === false) {
-    print_error('unknownuseraction');
-}
-
-if (!confirm_sesskey()) {
-    print_error('confirmsesskeybad');
-}
-
-require_once($formaction);
+$tasks = array(
+    array(
+        'classname' => 'local_augmented_teacher\task\send_reminder_message',
+        'blocking' => 0,
+        'minute' => '*/5',
+        'hour' => '*',
+        'day' => '*',
+        'dayofweek' => '*',
+        'month' => '*'
+    ),
+);
