@@ -167,6 +167,7 @@ function local_augmented_teacher_send_reminder_message() {
 
                     $message = str_replace($search, $replace, $reminder->message);
                     $message = text_to_html($message);
+                    $message = html_entity_decode($message);
                     if ($mid = message_post_message($userfrom, $user, $message, FORMAT_HTML)) {
                         $log = new stdClass();
                         $log->userid = $user->id;
