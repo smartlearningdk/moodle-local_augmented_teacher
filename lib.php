@@ -28,6 +28,10 @@ defined('MOODLE_INTERNAL') || die();
 define('REMINDER_BEFORE_DUE', 1);
 define('REMINDER_AFTER_DUE', 2);
 
+define('MESAGE_TYPE_REMINDER', 1);
+define('MESAGE_TYPE_NOTLOGGED', 2);
+define('MESAGE_TYPE_RECOMMEND', 3);
+
 function local_augmented_teacher_extend_settings_navigation($settingsnav, $context) {
     global $PAGE;
 
@@ -50,6 +54,7 @@ function local_augmented_teacher_extend_settings_navigation($settingsnav, $conte
     }
     return;
 }
+
 /**
  * Converts seconds to some more user friendly string.
  * @static
@@ -74,6 +79,7 @@ function local_augmented_get_duration_text($seconds) {
             return get_string('numseconds', '', $data['v'] * $data['u']);
     }
 }
+
 /**
  * Finds suitable units for given duration.
  * @static
@@ -88,6 +94,7 @@ function local_augmented_parse_seconds($seconds) {
     }
     return array('v' => (int)$seconds, 'u' => 1);
 }
+
 function local_augmented_get_units() {
     return array(
         604800 => get_string('weeks'),
@@ -117,9 +124,10 @@ function local_augmented_teacher_send_reminder_message() {
               JOIN {course_modules} cm
                 ON rem.cmid = cm.id
              WHERE rem.deleted = ?
-               AND rem.enabled = ?";
+               AND rem.enabled = ?
+               AND rem.messagetype = ?";
 
-    $rs = $DB->get_recordset_sql($sql, array(0, 1));
+    $rs = $DB->get_recordset_sql($sql, array(0, 1, MESAGE_TYPE_REMINDER));
     foreach ($rs as $reminder) {
         // Disable unsent reminder after 24 hours.
         if (($time - $reminder->scheduled) >= 24 * 60 * 60) {
@@ -146,6 +154,9 @@ function local_augmented_teacher_send_reminder_message() {
                 $completionrate = local_augmented_teacher_activity_completion_rate($cm, $users);
 
                 foreach ($users as $user) {
+                    if (local_augmented_is_excluded($user->id, $course->id)) {
+                        continue;
+                    }
                     if (local_augmented_teacher_is_activity_completed($cm, $user)) {
                         continue;
                     }
@@ -160,7 +171,7 @@ function local_augmented_teacher_send_reminder_message() {
                     $replace = array(
                         'activityname' => $instance->name,
                         'lastname' => $user->lastname,
-                        'firstname' => $user->firstname,
+                        'firstname' => local_augmented_get_first_firstname($user->firstname),
                         'coursename' => $course->fullname,
                         'completionrate' => $completionrate.'%'
                     );
@@ -183,6 +194,223 @@ function local_augmented_teacher_send_reminder_message() {
         }
     }
     $rs->close();
+}
+
+function local_augmented_teacher_send_notloggedin_reminder_message() {
+    global $CFG, $DB;
+
+    $notloggedinlast = get_config('local_augmented_teacher', 'notloggedinlast');
+    $notloggedinhour = get_config('local_augmented_teacher', 'notloggedinhour');
+    if (is_null($notloggedinhour)) {
+        debugging("local_augmented_teacher_send_notloggedin_reminder_message() needs notloggedinhour setting");
+        return;
+    }
+
+    $timenow = time();
+    $notifytime = usergetmidnight($timenow, $CFG->timezone) + ($notloggedinhour * 3600);
+
+    if ($notloggedinlast > $notifytime) {
+        mtrace('Not logged in reminders were already sent today at '.userdate($notloggedinlast, '', $CFG->timezone).'.');
+        return;
+    } else if ($timenow < $notifytime) {
+        mtrace('Not logged in reminders will be sent at '.userdate($notifytime, '', $CFG->timezone).'.');
+        return;
+    }
+
+    mtrace('Processing not logged in reminders...');
+
+    cron_setup_user();
+
+    $sql = "SELECT rem.id,
+                   rem.userid, 
+                   rem.courseid, 
+                   rem.title, 
+                   rem.message, 
+                   rem.timeinterval
+              FROM {local_augmented_teacher_rem} rem
+              JOIN {course} c 
+                ON rem.courseid = c.id
+             WHERE rem.messagetype = ?
+               AND rem.enabled = 1
+               AND rem.deleted = 0";
+
+    $rs = $DB->get_recordset_sql($sql, array(MESAGE_TYPE_NOTLOGGED));
+    foreach ($rs as $reminder) {
+         if ($reminder->timeinterval) {
+            // Send messages.
+            if ($course = $DB->get_record('course', array('id' => $reminder->courseid))) {
+                $context = context_course::instance($course->id);
+
+                if (!$userfrom = $DB->get_record('user', array('id' => $reminder->userid, 'deleted' => 0))) {
+                    continue;
+                }
+
+                $users = get_enrolled_users($context, 'local/augmented_teacher:receivereminder');
+
+                foreach ($users as $user) {
+                    if (local_augmented_is_excluded($user->id, $course->id)) {
+                        continue;
+                    }
+                    if ($timenow < $reminder->timeinterval + $user->lastaccess) {
+                        continue;
+                    }
+                    if ($timenow - $user->lastaccess - $reminder->timeinterval > 24*60*60) {
+                        continue;
+                    }
+
+                    $search = array(
+                        'lastname' => '{{lastname}}',
+                        'firstname' => '{{firstname}}',
+                        'lastlogindate' => '{{lastlogindate}}',
+                    );
+
+                    $replace = array(
+                        'lastname' => $user->lastname,
+                        'firstname' => local_augmented_get_first_firstname($user->firstname),
+                        'lastlogindate' => userdate($user->lastaccess)
+                    );
+
+                    $message = str_replace($search, $replace, $reminder->message);
+                    $message = text_to_html($message);
+                    $message = html_entity_decode($message);
+                    if ($mid = message_post_message($userfrom, $user, $message, FORMAT_HTML)) {
+                        $log = new stdClass();
+                        $log->userid = $user->id;
+                        $log->remid = $reminder->id;
+                        $log->mid = $mid;
+                        $log->timecreated = time();
+                        $DB->insert_record('local_augmented_teacher_log', $log);
+                    }
+                }
+            }
+        }
+    }
+    $rs->close();
+
+    set_config('notloggedinlast', $timenow, 'local_augmented_teacher');
+}
+
+function local_augmented_teacher_send_activity_recommendation() {
+    global $CFG, $DB;
+
+    require_once($CFG->dirroot . '/lib/completionlib.php');
+    
+    $recommendactivitylast = get_config('local_augmented_teacher', 'recommendactivitylast');
+    $recommendactivityhour = get_config('local_augmented_teacher', 'recommendactivityhour');
+    if (is_null($recommendactivityhour)) {
+        debugging("local_augmented_teacher_send_activity_recommendation() needs recommendactivityhour setting");
+        return;
+    }
+
+    $timenow = time();
+    $notifytime = usergetmidnight($timenow, $CFG->timezone) + ($recommendactivityhour * 3600);
+
+    if ($recommendactivitylast > $notifytime) {
+        mtrace('Recommended activity messages were already sent today at '.userdate($recommendactivitylast, '', $CFG->timezone).'.');
+        return;
+    } else if ($timenow < $notifytime) {
+        mtrace('Recommended activity messages will be sent at '.userdate($notifytime, '', $CFG->timezone).'.');
+        return;
+    }
+
+    mtrace('Processing recommended activity messages...');
+
+    cron_setup_user();
+
+    $sql = "SELECT rem.id,
+                   rem.userid, 
+                   rem.courseid, 
+                   rem.title, 
+                   rem.message, 
+                   rem.cmid, 
+                   rem.cmid2, 
+                   rem.timeinterval
+              FROM {local_augmented_teacher_rem} rem
+              JOIN {course} c 
+                ON rem.courseid = c.id
+             WHERE rem.messagetype = ?
+               AND rem.enabled = 1
+               AND rem.deleted = 0";
+
+    $rs = $DB->get_recordset_sql($sql, array(MESAGE_TYPE_RECOMMEND));
+    foreach ($rs as $reminder) {
+
+         if ($reminder->timeinterval) {
+             $cm = get_coursemodule_from_id('', $reminder->cmid);
+             $course = $DB->get_record('course', array('id' => $cm->course));
+             $cm2 = get_coursemodule_from_id('', $reminder->cmid2);
+             $course2 = $DB->get_record('course', array('id' => $cm2->course));
+
+             if ($cm && $cm2 && $course && $course2 && $course->id == $reminder->courseid) {
+                 $context = context_course::instance($course->id);
+
+                 if (!$userfrom = $DB->get_record('user', array('id' => $reminder->userid, 'deleted' => 0))) {
+                     continue;
+                 }
+
+                 $users = get_enrolled_users($context, 'local/augmented_teacher:receivereminder');
+                 list($insql, $params) = $DB->get_in_or_equal(array_keys($users), SQL_PARAMS_NAMED, 'u');
+
+                 $params['cmid'] = $cm->id;
+                 $params['timestart'] = usergetmidnight(($timenow - $reminder->timeinterval), $CFG->timezone);
+                 $params['timeend']  =$params['timestart'] + (86400-1);
+
+                 $sql = "SELECT cmc.id, cmc.coursemoduleid, cmc.userid,
+                                cmc.completionstate, cmc.viewed, cmc.overrideby,
+                                cmc.timemodified
+                           FROM {course_modules_completion} cmc
+                          WHERE cmc.coursemoduleid = :cmid
+                            AND cmc.userid {$insql}
+                            AND cmc.timemodified > :timestart
+                            AND cmc.timemodified < :timeend
+                            AND cmc.completionstate IN (".COMPLETION_COMPLETE.", ".COMPLETION_COMPLETE_PASS.", ".COMPLETION_COMPLETE_FAIL.")";
+
+                 $rs2 = $DB->get_recordset_sql($sql, $params);
+
+                 foreach ($rs2 as $completion) {
+                     if (local_augmented_is_excluded($completion->userid, $course->id)) {
+                         continue;
+                     }
+
+                     $user = $DB->get_record('user', array('id' => $completion->userid));
+
+                     $search = array(
+                         'lastname' => '{{lastname}}',
+                         'firstname' => '{{firstname}}',
+                         'coursename' => '{{coursename}}',
+                         'completiondate' => '{{completiondate}}',
+                         'activity' => '{{activity}}',
+                         'recommendedactivity' => '{{recommendedactivity}}',
+                     );
+
+                     $replace = array(
+                         'lastname' => $user->lastname,
+                         'firstname' => local_augmented_get_first_firstname($user->firstname),
+                         'coursename' => $course->fullname,
+                         'completiondate' => userdate($completion->timemodified, '', $CFG->timezone),
+                         'activity' => html_writer::link(new moodle_url('/mod/' . $cm->modname . '/view.php', array('id' => $cm->id)), $cm->name),
+                         'recommendedactivity' => html_writer::link(new moodle_url('/mod/' . $cm2->modname . '/view.php', array('id' => $cm2->id)), $cm2->name),
+                     );
+
+                     $message = str_replace($search, $replace, $reminder->message);
+                     $message = text_to_html($message);
+                     $message = html_entity_decode($message);
+                     if ($mid = message_post_message($userfrom, $user, $message, FORMAT_HTML)) {
+                         $log = new stdClass();
+                         $log->userid = $user->id;
+                         $log->remid = $reminder->id;
+                         $log->mid = $mid;
+                         $log->timecreated = time();
+                         $DB->insert_record('local_augmented_teacher_log', $log);
+                     }
+                 }
+                 $rs2->close();
+            }
+        }
+    }
+    $rs->close();
+
+    set_config('recommendactivitylast', $timenow, 'local_augmented_teacher');
 }
 
 function local_augmented_teacher_disable_reminder($remid) {
@@ -244,4 +472,72 @@ function local_augmented_teacher_is_activity_completed($cm, $user) {
                AND comp.userid = :userid";
 
     return $DB->record_exists_sql($sql, $params);
+}
+
+function local_augmented_teacher_pix_url($imagename, $component=null) {
+    global $CFG, $OUTPUT;
+    if ($CFG->branch >= 33) { // MDL 3.3+.
+        return $OUTPUT->image_url($imagename, $component);
+    } else {
+        return $OUTPUT->pix_url($imagename, $component);
+    }
+}
+
+function local_augmented_get_first_firstname($firstname) {
+    $names = explode(' ', trim($firstname));
+    return reset($names);
+}
+
+function local_augmented_get_excluded_users($courseid) {
+    global $DB;
+
+    $sql = "SELECT exc.userid
+              FROM {local_augmented_teacher_exc} exc
+              JOIN {user} u 
+                ON exc.userid = u.id
+             WHERE exc.courseid = ? 
+               AND (exc.timeend > ? OR exc.timeend = 0)
+               AND u.deleted = 0";
+
+    return $DB->get_records_sql($sql, array($courseid, time()));
+}
+
+function local_augmented_is_excluded($userid, $courseid) {
+    global $DB;
+
+    $sql = "SELECT exc.userid
+              FROM {local_augmented_teacher_exc} exc
+              JOIN {user} u 
+                ON exc.userid = u.id
+             WHERE exc.userid = ? 
+               AND exc.courseid = ? 
+               AND (exc.timeend > ? OR exc.timeend = 0)
+               AND u.deleted = 0";
+
+    return $DB->record_exists_sql($sql, array($userid, $courseid, time()));
+}
+
+function local_augmented_get_activity_list_options($courseid) {
+    global $USER;
+
+    $activitylist = array('' => get_string('select', 'local_augmented_teacher'));
+
+    $modinfo = get_fast_modinfo($courseid, $USER->id);
+    $activities = $modinfo->get_cms();
+
+    foreach ($activities as $key => $mod) {
+        $modulecontext = context_module::instance($mod->id);
+        if (!$mod->visible && !has_capability('moodle/course:viewhiddenactivities', $modulecontext)) {
+            unset($activities[$key]);
+            continue;
+        }
+        if ($mod->completion == COMPLETION_TRACKING_NONE) {
+            unset($activities[$key]);
+            continue;
+        }
+
+        $activitylist[$mod->id] = $mod->name;
+    }
+
+    return $activitylist;
 }

@@ -31,9 +31,19 @@
         ?>
         :</b></label></td>
     <td>
+        <?php
+        if ($editorpluginname == 'atto_texteditor') {
+        ?>
         <button class="shortcode">{{firstname}}</button>
         <button class="shortcode">{{lastname}}</button>
         <button class="shortcode">{{coursename}}</button>
+        <?php
+        } else {
+        ?>
+        {{firstname}} {{lastname}} {{coursename}}
+        <?php
+        }
+        ?>
     </td>
 </tr>
 
@@ -58,7 +68,7 @@
                 $error = get_string('emailempty');
             }
             if (!empty($error)) {
-                echo '<img src="'.$OUTPUT->pix_url('t/emailno') . '" alt="'.$error.'" class="iconsmall" title="'.$error.'"/>';
+                echo '<img src="'.local_augmented_teacher_pix_url('t/emailno') . '" alt="'.$error.'" class="iconsmall" title="'.$error.'"/>';
                 unset($error);
             }
             echo '</td><td><input type="submit" onClick="this.form.deluser.value='.$user->id.';" value="' .

@@ -33,10 +33,13 @@ class send_reminder_message extends \core\task\scheduled_task {
     }
     public function execute() {
         global $CFG;
+        require_once($CFG->dirroot . '/lib/completionlib.php');
         require_once($CFG->dirroot . '/local/augmented_teacher/lib.php');
         if (!$CFG->messaging) {
             return;
         }
         local_augmented_teacher_send_reminder_message();
+        local_augmented_teacher_send_notloggedin_reminder_message();
+        local_augmented_teacher_send_activity_recommendation();
     }
 }

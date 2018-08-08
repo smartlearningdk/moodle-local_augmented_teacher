@@ -26,29 +26,38 @@
 require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 require_once($CFG->dirroot . '/local/augmented_teacher/lib.php');
 
-$id        = optional_param('id', 0, PARAM_INT);
-$page      = optional_param('page', 0, PARAM_INT);
-$perpage   = optional_param('perpage', 20, PARAM_INT);
-$sort      = optional_param('sort', 'title', PARAM_ALPHANUM);
-$dir       = optional_param('dir', 'ASC', PARAM_ALPHA);
-$action    = optional_param('action', false, PARAM_ALPHA);
-$search    = optional_param('search', '', PARAM_TEXT);
+$id      = optional_param('id', 0, PARAM_INT);
+$cmid    = optional_param('cmid', 0, PARAM_INT);
+$page    = optional_param('page', 0, PARAM_INT);
+$perpage = optional_param('perpage', 20, PARAM_INT);
+$sort    = optional_param('sort', 'lastname', PARAM_ALPHANUM);
+$dir     = optional_param('dir', 'ASC', PARAM_ALPHA);
+$action  = optional_param('action', false, PARAM_ALPHA);
+$search  = optional_param('search', '', PARAM_TEXT);
 
-$thispageurl = new moodle_url('/local/augmented_teacher/reminders_list.php', array(
+$thispageurl = new moodle_url('/local/augmented_teacher/message_log.php', array(
     'page' => $page,
     'perpage' => $perpage,
     'sort' => $sort,
     'dir' => $dir,
     'search' => $search,
-    'id' => $id
+    'id' => $id,
+    'cmid' => $cmid
 ));
 
 $PAGE->set_url($thispageurl);
 
-$cm = get_coursemodule_from_id('', $id, 0, false, MUST_EXIST);
-$course = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
+$reminder = $DB->get_record('local_augmented_teacher_rem', array('id' => $id, 'deleted' => 0), '*', MUST_EXIST);
+
+if ($reminder->messagetype == MESAGE_TYPE_REMINDER) {
+    $cm = get_coursemodule_from_id('', $reminder->cmid, 0, false, MUST_EXIST);
+    $course = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
+    $instance = $DB->get_record($cm->modname, array('id' => $cm->instance));
+} else if ($reminder->messagetype == MESAGE_TYPE_NOTLOGGED || $reminder->messagetype == MESAGE_TYPE_RECOMMEND) {
+    $course = $DB->get_record('course', array('id' => $reminder->courseid), '*', MUST_EXIST);
+}
+
 $context = context_course::instance($course->id, MUST_EXIST);
-$instance = $DB->get_record($cm->modname, array('id' => $cm->instance));
 
 require_login($course);
 
@@ -61,10 +70,18 @@ $PAGE->set_title("$course->shortname: ".get_string('participants'));
 $PAGE->set_heading($course->fullname);
 $PAGE->set_pagetype('course-view-' . $course->format);
 
-$PAGE->navbar->add(get_string('reminders', 'local_augmented_teacher'),
-    new moodle_url('/local/augmented_teacher/reminders.php', array('id' => $course->id)));
-
-$PAGE->navbar->add($instance->name);
+if ($reminder->messagetype == MESAGE_TYPE_REMINDER) {
+    $PAGE->navbar->add(get_string('reminders', 'local_augmented_teacher'),
+        new moodle_url('/local/augmented_teacher/reminders.php', array('id' => $cm->id)));
+    $PAGE->navbar->add($instance->name);
+} else if ($reminder->messagetype == MESAGE_TYPE_NOTLOGGED) {
+    $PAGE->navbar->add(get_string('notloggedinreminders', 'local_augmented_teacher'),
+        new moodle_url('/local/augmented_teacher/notloggedinreminders.php', array('id' => $course->id)));
+} else if ($reminder->messagetype == MESAGE_TYPE_RECOMMEND) {
+    $PAGE->navbar->add(get_string('recommendactivity', 'local_augmented_teacher'),
+        new moodle_url('/local/augmented_teacher/recommendactivity.php', array('id' => $course->id)));
+}
+$PAGE->navbar->add(get_string('logs', 'local_augmented_teacher'));
 
 $settingnode = $PAGE->settingsnav->find('local_augmented_teacher', navigation_node::TYPE_SETTING);
 $settingnode->make_active();
@@ -75,25 +92,29 @@ $strdelete = get_string('delete', 'local_augmented_teacher');
 $strlog = get_string('log', 'local_augmented_teacher');
 
 $datacolumns = array(
-    'id' => 'rem.id',
-    'cmid' => 'rem.cmid',
-    'title' => 'rem.title',
-    'message' => 'rem.message',
-    'type' => 'rem.type',
-    'timeinterval' => 'rem.timeinterval',
-    'scheduled' => 'scheduled',
-    'completionexpected' => 'cm.completionexpected',
-    'enabled' => 'rem.enabled',
-    'deleted' => 'rem.deleted',
+    'id' => 'l.id',
+    'remid' => 'l.remid',
+    'mid' => 'l.mid',
+    'timecreated' => 'l.timecreated',
+    'subject' => 'm.subject',
+    'fullmessage' => 'm.fullmessage',
+    'smallmessage' => 'm.smallmessage',
+    'firstname' => 'u.firstname',
+    'lastname' => 'u.lastname'
 );
+
+if ($CFG->branch >= 35) {
+    $datacolumns['useridto'] = '(SELECT mcm.userid FROM mdl_message_conversation_members AS mcm WHERE mcm.conversationid = m.conversationid AND mcm.userid != m.useridfrom)';
+} else {
+    $datacolumns['useridto'] = 'm.useridto';
+}
+
 // Filter.
 $filters = array();
 $params = array();
 
-$filters[] = $datacolumns['deleted'] .' = :deleted';
-$filters[] = $datacolumns['cmid'] .' = :cmid';
-$params['deleted'] = 0;
-$params['cmid'] = $cm->id;
+$filters[] = $datacolumns['remid'] .' = :remid';
+$params['remid'] = $id;
 
 $where = implode(' AND ', $filters);
 
@@ -104,32 +125,41 @@ if ($sort) {
 }
 
 // Count records for paging.
-$countsql = "SELECT COUNT(1) FROM {local_augmented_teacher_rem} rem WHERE $where";
+$countsql = "SELECT COUNT(1)
+               FROM {local_augmented_teacher_log} l
+               JOIN {message} m
+                 ON l.mid = m.id
+               JOIN {user} u
+                 ON m.useridto = u.id
+              WHERE $where";
 $totalcount = $DB->count_records_sql($countsql, $params);
 
 // Table columns.
 $columns = array(
     'rowcount',
-    'title',
-    'message',
-    'completionexpected',
-    'enabled',
-    'type',
-    'timeinterval',
-    'scheduled',
-    'action'
+    'firstname',
+    'lastname',
+    'subject',
+    'smallmessage',
+    'timecreated'
 );
-
-$sql = "SELECT rem.*, cm.completionexpected,
-               case rem.type
-                  when ".REMINDER_BEFORE_DUE." then cm.completionexpected - rem.timeinterval
-                  when ".REMINDER_AFTER_DUE." then cm.completionexpected + rem.timeinterval
-               end as scheduled
-          FROM {local_augmented_teacher_rem} rem
-          JOIN {course_modules} cm
-            ON rem.cmid = cm.id
+if ($CFG->branch >= 35) {
+    $sql = "SELECT l.id,l.remid,l.mid,l.timecreated,
+                   (SELECT mcm.userid FROM mdl_message_conversation_members AS mcm WHERE mcm.conversationid = m.conversationid AND mcm.userid != m.useridfrom) useridto,
+                   m.subject,m.fullmessage,m.smallmessage,u.firstname,u.lastname
+          FROM {local_augmented_teacher_log} l
+          JOIN {messages} m ON l.mid = m.id
+          JOIN {user} u ON (SELECT mcm.userid FROM mdl_message_conversation_members AS mcm WHERE mcm.conversationid = m.conversationid AND mcm.userid != m.useridfrom) = u.id
          WHERE $where
                $order";
+} else {
+    $sql = "SELECT l.id,l.remid,l.mid,l.timecreated,m.useridto,m.subject,m.fullmessage,m.smallmessage,u.firstname,u.lastname
+          FROM {local_augmented_teacher_log} l
+          JOIN {message} m ON l.mid = m.id
+          JOIN {user} u ON m.useridto = u.id
+         WHERE $where
+               $order";
+}
 
 foreach ($columns as $column) {
     if ($column == 'completionexpected') {
@@ -232,31 +262,6 @@ foreach ($tablerows as $tablerow) {
                     $$varname = new html_table_cell(get_string('after', 'local_augmented_teacher'));
                 }
                 break;
-            case 'action':
-                // Log.
-                $actionurl = new moodle_url('/local/augmented_teacher/message_log.php',
-                    array('id' => $tablerow->id, 'cmid' => $cm->id )
-                );
-                $actionicon = html_writer::img($iconlog, $strlog, array('width' => '16', 'height' => '16'));
-                $actionlinks .= html_writer::link($actionurl->out(false), $actionicon,
-                    array('class' => 'actionlink', 'title' => $strlog)).' ';
-
-                // Edit.
-                $actionurl = new moodle_url('/local/augmented_teacher/reminders_edit.php',
-                    array('id' => $tablerow->id, 'cmid' => $cm->id )
-                );
-                $actionicon = html_writer::img($iconedit, $stredit, array('width' => '16', 'height' => '16'));
-                $actionlinks .= html_writer::link($actionurl->out(false), $actionicon,
-                    array('class' => 'actionlink', 'title' => $stredit)).' ';
-
-                // Delete.
-                $actionurl = new moodle_url('/local/augmented_teacher/reminders_delete.php', array('id' => $tablerow->id ));
-                $actionicon = html_writer::img($icondelete, $strdelete, array('width' => '16', 'height' => '16'));
-                $actionlinks .= html_writer::link($actionurl->out(), $actionicon,
-                    array('class' => 'actionlink', 'title' => $strdelete));
-
-                $$varname = new html_table_cell($actionlinks);
-                break;
             default:
                 $$varname = new html_table_cell($tablerow->$column);
         }
@@ -271,11 +276,18 @@ foreach ($tablerows as $tablerow) {
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading($instance->name.' - '.get_string('reminders', 'local_augmented_teacher'));
+
+if ($reminder->messagetype == MESAGE_TYPE_REMINDER) {
+    echo $OUTPUT->heading($instance->name.' - '.get_string('reminders', 'local_augmented_teacher'));
+} else if ($reminder->messagetype == MESAGE_TYPE_NOTLOGGED) {
+    echo $OUTPUT->heading($course->fullname.' - '.get_string('notloggedinreminders', 'local_augmented_teacher'));
+} else if ($reminder->messagetype == MESAGE_TYPE_NOTLOGGED) {
+    echo $OUTPUT->heading($course->fullname.' - '.get_string('recommendactivity', 'local_augmented_teacher'));
+}
 
 echo html_writer::start_div('page-content-wrapper', array('id' => 'page-content'));
 
-$pagingurl = new moodle_url('/local/augmented_teacher/reminders_list.php',
+$pagingurl = new moodle_url('/local/augmented_teacher/message_log.php',
     array(
         'perpage' => $perpage,
         'sort' => $sort,
@@ -290,7 +302,13 @@ echo html_writer::table($table);
 echo $OUTPUT->render($pagingbar);
 
 // Add record form.
-$formurl = new moodle_url('/local/augmented_teacher/reminders_edit.php', array('cmid' => $cm->id));
+if ($reminder->messagetype == MESAGE_TYPE_REMINDER) {
+    $formurl = new moodle_url('/local/augmented_teacher/reminders_edit.php', array('cmid' => $cm->id));
+} else if ($reminder->messagetype == MESAGE_TYPE_NOTLOGGED) {
+    $formurl = new moodle_url('/local/augmented_teacher/notloggedinreminders_edit.php', array('courseid' => $course->id));
+} else if ($reminder->messagetype == MESAGE_TYPE_RECOMMEND) {
+    $formurl = new moodle_url('/local/augmented_teacher/recommendactivity_edit.php', array('courseid' => $course->id));
+}
 $submitbutton  = html_writer::tag('button', get_string('addnewreminder', 'local_augmented_teacher'),
     array(
         'class' => 'add-record-btn',

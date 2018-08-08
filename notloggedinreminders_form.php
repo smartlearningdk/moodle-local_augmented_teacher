@@ -34,7 +34,7 @@ class reminder_form extends moodleform {
 
         $customdata = $this->_customdata;
 
-        $mform->addElement('header', '', get_string('reminder', 'local_augmented_teacher'), '');
+        $mform->addElement('header', '', get_string('notloggedinreminder', 'local_augmented_teacher'), '');
 
         $mform->addElement('text', 'title', get_string('title', 'local_augmented_teacher'));
         $mform->setType('title', PARAM_TEXT);
@@ -48,36 +48,37 @@ class reminder_form extends moodleform {
             $mform->addElement('static', 'shortcodes', get_string('shortcodes', 'local_augmented_teacher'),
                 '<button class="shortcode">{{firstname}}</button> ' .
                 '<button class="shortcode">{{lastname}}</button> ' .
-                '<button class="shortcode">{{coursename}}</button> ' .
-                '<button class="shortcode">{{activityname}}</button> ' .
-                '<button class="shortcode">{{completionrate}}</button>');
+                '<button class="shortcode">{{lastlogindate}}</button>');
         } else {
             $mform->addElement('static', 'shortcodes', get_string('shortcodes', 'local_augmented_teacher'),
-                '{{firstname}} {{lastname}} {{coursename}} {{activityname}} {{completionrate}}');
+                '{{firstname}} {{lastname}} {{lastlogindate}}');
         }
         $mform->addHelpButton('shortcodes', 'shortcodes', 'local_augmented_teacher');
-
 
         $mform->addElement('selectyesno', 'enabled', get_string('enabled', 'local_augmented_teacher'));
         $mform->addRule('enabled', null, 'required', null, 'client');
         $mform->setDefault('enabled', '1');
 
-        $typeoptions = array(
-            REMINDER_BEFORE_DUE => get_string('before', 'local_augmented_teacher'),
-            REMINDER_AFTER_DUE => get_string('after', 'local_augmented_teacher')
-        );
-        $mform->addElement('select', 'type', get_string('type', 'local_augmented_teacher'), $typeoptions);
-        $mform->addRule('type', null, 'required', null, 'client');
 
-        $mform->addElement('duration', 'timeinterval', get_string('timeinterval', 'local_augmented_teacher'));
+        $options = array('optional' => false, 'defaultunit' => 86400);
+        $mform->addElement('duration', 'timeinterval', get_string('duration', 'local_augmented_teacher'), $options);
         $mform->addRule('timeinterval', null, 'required', null, 'client');
+        $mform->addHelpButton('timeinterval', 'duration', 'local_augmented_teacher');
 
         $mform->addElement('hidden', 'id');
         $mform->setType('id', PARAM_INT);
 
-        $mform->addElement('hidden', 'cmid');
-        $mform->setType('cmid', PARAM_INT);
+        $mform->addElement('hidden', 'courseid');
+        $mform->setType('courseid', PARAM_INT);
 
         $this->add_action_buttons(true, get_string('submit', 'local_augmented_teacher'));
+    }
+    public function validation($data, $files) {
+        $errors = array();
+
+        if ($data['timeinterval'] < 86400) {
+            $errors['timeinterval'] = get_string('durationlessthanday', 'local_augmented_teacher');
+        }
+        return $errors;
     }
 }

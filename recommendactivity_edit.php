@@ -25,25 +25,21 @@
 
 require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 require_once($CFG->dirroot . '/local/augmented_teacher/lib.php');
-require_once($CFG->dirroot . '/local/augmented_teacher/reminders_form.php');
+require_once($CFG->dirroot . '/local/augmented_teacher/recommendactivity_form.php');
 
 $id   = optional_param('id', 0, PARAM_INT);
-$cmid = optional_param('cmid', 0, PARAM_INT);
+$courseid = optional_param('courseid', 0, PARAM_INT);
 
-$thispageurl = new moodle_url('/local/augmented_teacher/reminders_edit.php', array('id' => $id));
+$thispageurl = new moodle_url('/local/augmented_teacher/recommendactivity_edit.php', array('id' => $id, 'courseid' => $courseid));
 
 $PAGE->set_url($thispageurl);
 
 if ($id) {
-    $toform = $DB->get_record('local_augmented_teacher_rem', array('id' => $id, 'deleted' => 0), '*', MUST_EXIST);
-    $cm = get_coursemodule_from_id('', $toform->cmid, 0, false, MUST_EXIST);
-} else {
-    $cm = get_coursemodule_from_id('', $cmid, 0, false, MUST_EXIST);
+    $toform = $DB->get_record('local_augmented_teacher_rem', array('id' => $id, 'messagetype' => MESAGE_TYPE_RECOMMEND, 'deleted' => 0), '*', MUST_EXIST);
 }
-$instance = $DB->get_record($cm->modname, array('id' => $cm->instance));
-$course = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
+$course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
 $context = context_course::instance($course->id, MUST_EXIST);
-$returnurl = new moodle_url('/local/augmented_teacher/reminders_list.php', array('id' => $cm->id));
+$returnurl = new moodle_url('/local/augmented_teacher/recommendactivity.php', array('id' => $course->id));
 
 require_login($course);
 
@@ -64,14 +60,15 @@ if ($editorpluginname == 'atto_texteditor') {
     $PAGE->requires->js_init_call('M.local_augmented_teacher.init_shortcode', null, false, $module);
 }
 
-$PAGE->navbar->add(get_string('reminders', 'local_augmented_teacher'),
-    new moodle_url('/local/augmented_teacher/reminders.php', array('id' => $course->id)));
-$PAGE->navbar->add($instance->name);
+$PAGE->navbar->add(get_string('recommendactivity', 'local_augmented_teacher'),
+    new moodle_url('/local/augmented_teacher/recommendactivity.php', array('id' => $course->id)));
+
+$PAGE->navbar->add(get_string('addedit', 'local_augmented_teacher'));
 
 $settingnode = $PAGE->settingsnav->find('local_augmented_teacher', navigation_node::TYPE_SETTING);
 $settingnode->make_active();
 
-$mform = new reminder_form(null, array('editorplugin' => $editorpluginname));
+$mform = new reminder_form(null, array('courseid' => $course->id, 'editorplugin' => $editorpluginname));
 
 if ($id) {
     $toform = $DB->get_record('local_augmented_teacher_rem', array('id' => $id, 'deleted' => 0), '*', MUST_EXIST);
@@ -84,14 +81,16 @@ if ($mform->is_cancelled()) {
     $rec = new stdClass();
     $rec->id = $fromform->id;
     $rec->title = $fromform->title;
+    $rec->cmid = $fromform->cmid;
+    $rec->cmid2 = $fromform->cmid2;
     $rec->message = $fromform->message['text'];
-    $rec->messagetype = MESAGE_TYPE_REMINDER;
-    $rec->type = $fromform->type;
+    $rec->messagetype = MESAGE_TYPE_RECOMMEND;
+    $rec->type = REMINDER_AFTER_DUE;
     $rec->enabled = $fromform->enabled;
     $rec->timeinterval = $fromform->timeinterval;
     if (!$id) {
         $rec->userid = $USER->id;
-        $rec->cmid = $fromform->cmid;
+        $rec->courseid = $fromform->courseid;
         $rec->timecreated = time();
         $rec->id = $DB->insert_record('local_augmented_teacher_rem', $rec);
         redirect($returnurl, '', 0);
@@ -109,7 +108,7 @@ echo $OUTPUT->header();
 if (!$id) {
     $toform = new stdClass();
     $toform->id = 0;
-    $toform->cmid = $cmid;
+    $toform->courseid = $course->id;
 }
 $mform->set_data($toform);
 $mform->display();

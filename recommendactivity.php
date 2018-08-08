@@ -30,11 +30,11 @@ $id        = optional_param('id', 0, PARAM_INT);
 $page      = optional_param('page', 0, PARAM_INT);
 $perpage   = optional_param('perpage', 20, PARAM_INT);
 $sort      = optional_param('sort', 'title', PARAM_ALPHANUM);
-$dir       = optional_param('dir', 'ASC', PARAM_ALPHA);
+$dir       = optional_param('duration', 'DESC', PARAM_ALPHA);
 $action    = optional_param('action', false, PARAM_ALPHA);
 $search    = optional_param('search', '', PARAM_TEXT);
 
-$thispageurl = new moodle_url('/local/augmented_teacher/reminders_list.php', array(
+$thispageurl = new moodle_url('/local/augmented_teacher/recommendactivity.php', array(
     'page' => $page,
     'perpage' => $perpage,
     'sort' => $sort,
@@ -45,10 +45,8 @@ $thispageurl = new moodle_url('/local/augmented_teacher/reminders_list.php', arr
 
 $PAGE->set_url($thispageurl);
 
-$cm = get_coursemodule_from_id('', $id, 0, false, MUST_EXIST);
-$course = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST);
+$course = $DB->get_record('course', array('id' => $id), '*', MUST_EXIST);
 $context = context_course::instance($course->id, MUST_EXIST);
-$instance = $DB->get_record($cm->modname, array('id' => $cm->instance));
 
 require_login($course);
 
@@ -61,10 +59,7 @@ $PAGE->set_title("$course->shortname: ".get_string('participants'));
 $PAGE->set_heading($course->fullname);
 $PAGE->set_pagetype('course-view-' . $course->format);
 
-$PAGE->navbar->add(get_string('reminders', 'local_augmented_teacher'),
-    new moodle_url('/local/augmented_teacher/reminders.php', array('id' => $course->id)));
-
-$PAGE->navbar->add($instance->name);
+$PAGE->navbar->add(get_string('recommendactivity', 'local_augmented_teacher'));
 
 $settingnode = $PAGE->settingsnav->find('local_augmented_teacher', navigation_node::TYPE_SETTING);
 $settingnode->make_active();
@@ -76,26 +71,19 @@ $strlog = get_string('log', 'local_augmented_teacher');
 
 $datacolumns = array(
     'id' => 'rem.id',
-    'cmid' => 'rem.cmid',
+    'userid' => 'rem.userid',
+    'courseid' => 'rem.courseid',
     'title' => 'rem.title',
+    'messagetype' => 'rem.messagetype',
+    'activity' => 'rem.cmid',
+    'recommendedactivity' => 'rem.cmi2',
     'message' => 'rem.message',
-    'type' => 'rem.type',
     'timeinterval' => 'rem.timeinterval',
-    'scheduled' => 'scheduled',
-    'completionexpected' => 'cm.completionexpected',
     'enabled' => 'rem.enabled',
     'deleted' => 'rem.deleted',
+    'timecreated' => 'rem.timecreated',
+    'timemodified' => 'rem.timemodified'
 );
-// Filter.
-$filters = array();
-$params = array();
-
-$filters[] = $datacolumns['deleted'] .' = :deleted';
-$filters[] = $datacolumns['cmid'] .' = :cmid';
-$params['deleted'] = 0;
-$params['cmid'] = $cm->id;
-
-$where = implode(' AND ', $filters);
 
 // Sort.
 $order = '';
@@ -103,8 +91,14 @@ if ($sort) {
     $order = " ORDER BY $datacolumns[$sort] $dir";
 }
 
+$params = array($course->id, MESAGE_TYPE_RECOMMEND);
+
 // Count records for paging.
-$countsql = "SELECT COUNT(1) FROM {local_augmented_teacher_rem} rem WHERE $where";
+$countsql = "SELECT COUNT(1) 
+               FROM {local_augmented_teacher_rem} rem
+              WHERE rem.courseid = ?
+                AND rem.messagetype = ? 
+                AND rem.deleted = 0";
 $totalcount = $DB->count_records_sql($countsql, $params);
 
 // Table columns.
@@ -112,23 +106,30 @@ $columns = array(
     'rowcount',
     'title',
     'message',
-    'completionexpected',
-    'enabled',
-    'type',
+    'activity',
+    'recommendedactivity',
     'timeinterval',
-    'scheduled',
+    'enabled',
     'action'
 );
 
-$sql = "SELECT rem.*, cm.completionexpected,
-               case rem.type
-                  when ".REMINDER_BEFORE_DUE." then cm.completionexpected - rem.timeinterval
-                  when ".REMINDER_AFTER_DUE." then cm.completionexpected + rem.timeinterval
-               end as scheduled
+$sql = "SELECT rem.id,
+               rem.userid,
+               rem.courseid,
+               rem.title,
+               rem.cmid activity,
+               rem.cmid2 recommendedactivity,
+               rem.messagetype,
+               rem.message,
+               rem.timeinterval,
+               rem.enabled,
+               rem.deleted,
+               rem.timecreated,
+               rem.timemodified
           FROM {local_augmented_teacher_rem} rem
-          JOIN {course_modules} cm
-            ON rem.cmid = cm.id
-         WHERE $where
+         WHERE rem.courseid = ?
+           AND rem.messagetype = ? 
+           AND rem.deleted = 0
                $order";
 
 foreach ($columns as $column) {
@@ -153,7 +154,10 @@ foreach ($columns as $column) {
         }
         $columnicon = "<img class='iconsort' src=\"" . local_augmented_teacher_pix_url('t/' . $columnicon) . "\" alt=\"\" />";
     }
-    if (($column == 'rowcount') || ($column == 'action')) {
+    if (($column == 'rowcount')
+        || ($column == 'activity')
+        || ($column == 'recommendedactivity')
+        || ($column == 'action')) {
         $$column = $string[$column];
     } else {
         $sorturl = $thispageurl;
@@ -206,6 +210,15 @@ foreach ($tablerows as $tablerow) {
                     $$varname = new html_table_cell(userdate($tablerow->$column, get_string('strftimedaydatetime')));
                 }
                 break;
+            case 'activity':
+            case 'recommendedactivity':
+                $$varname = '-';
+                if ($tablerow->$column) {
+                    if ($cm = get_coursemodule_from_id('', $tablerow->$column)) {
+                        $$varname = new html_table_cell($cm->name);
+                    }
+                }
+                break;
             case 'completionexpected':
                 $$varname = '-';
                 if ($tablerow->$column > 0) {
@@ -235,24 +248,26 @@ foreach ($tablerows as $tablerow) {
             case 'action':
                 // Log.
                 $actionurl = new moodle_url('/local/augmented_teacher/message_log.php',
-                    array('id' => $tablerow->id, 'cmid' => $cm->id )
+                    array('id' => $tablerow->id, 'courseid' => $course->id)
                 );
                 $actionicon = html_writer::img($iconlog, $strlog, array('width' => '16', 'height' => '16'));
                 $actionlinks .= html_writer::link($actionurl->out(false), $actionicon,
                     array('class' => 'actionlink', 'title' => $strlog)).' ';
 
                 // Edit.
-                $actionurl = new moodle_url('/local/augmented_teacher/reminders_edit.php',
-                    array('id' => $tablerow->id, 'cmid' => $cm->id )
+                $actionurl = new moodle_url('/local/augmented_teacher/recommendactivity_edit.php',
+                    array('id' => $tablerow->id, 'courseid' => $course->id)
                 );
                 $actionicon = html_writer::img($iconedit, $stredit, array('width' => '16', 'height' => '16'));
                 $actionlinks .= html_writer::link($actionurl->out(false), $actionicon,
                     array('class' => 'actionlink', 'title' => $stredit)).' ';
 
                 // Delete.
-                $actionurl = new moodle_url('/local/augmented_teacher/reminders_delete.php', array('id' => $tablerow->id ));
+                $actionurl = new moodle_url('/local/augmented_teacher/recommendactivity_delete.php',
+                    array('id' => $tablerow->id, 'courseid' => $course->id)
+                );
                 $actionicon = html_writer::img($icondelete, $strdelete, array('width' => '16', 'height' => '16'));
-                $actionlinks .= html_writer::link($actionurl->out(), $actionicon,
+                $actionlinks .= html_writer::link($actionurl->out(false), $actionicon,
                     array('class' => 'actionlink', 'title' => $strdelete));
 
                 $$varname = new html_table_cell($actionlinks);
@@ -271,11 +286,11 @@ foreach ($tablerows as $tablerow) {
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading($instance->name.' - '.get_string('reminders', 'local_augmented_teacher'));
+echo $OUTPUT->heading($course->fullname.' - '.get_string('recommendactivity', 'local_augmented_teacher'));
 
 echo html_writer::start_div('page-content-wrapper', array('id' => 'page-content'));
 
-$pagingurl = new moodle_url('/local/augmented_teacher/reminders_list.php',
+$pagingurl = new moodle_url('/local/augmented_teacher/recommendactivity.php',
     array(
         'perpage' => $perpage,
         'sort' => $sort,
@@ -290,7 +305,7 @@ echo html_writer::table($table);
 echo $OUTPUT->render($pagingbar);
 
 // Add record form.
-$formurl = new moodle_url('/local/augmented_teacher/reminders_edit.php', array('cmid' => $cm->id));
+$formurl = new moodle_url('/local/augmented_teacher/recommendactivity_edit.php', array('courseid' => $course->id));
 $submitbutton  = html_writer::tag('button', get_string('addnewreminder', 'local_augmented_teacher'),
     array(
         'class' => 'add-record-btn',

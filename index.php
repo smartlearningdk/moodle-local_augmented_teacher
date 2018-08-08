@@ -85,6 +85,9 @@ $tasklist = array();
 $tasklist['mergedmessages.php'] = get_string('mergedmessages', 'local_augmented_teacher');
 if ($CFG->messaging) {
     $tasklist['reminders.php'] = get_string('reminders', 'local_augmented_teacher');
+    $tasklist['notloggedinreminders.php'] = get_string('notloggedinreminder', 'local_augmented_teacher');
+    $tasklist['excluded_users.php'] = get_string('excludeusersfromreminders', 'local_augmented_teacher');
+    $tasklist['recommendactivity.php'] = get_string('recommendactivity', 'local_augmented_teacher');
 }
 echo $OUTPUT->help_icon('choosetask', 'local_augmented_teacher');
 echo html_writer::tag('label', get_string('choosetask', 'local_augmented_teacher'), array('for' => 'formactionid'))  . ' ';

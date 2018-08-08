@@ -32,7 +32,7 @@ defined('MOODLE_INTERNAL') || die();
  * @return bool always true
  */
 function xmldb_local_augmented_teacher_upgrade($oldversion) {
-    global $CFG, $DB;
+    global $DB;
 
     $dbman = $DB->get_manager();
 
@@ -84,6 +84,66 @@ function xmldb_local_augmented_teacher_upgrade($oldversion) {
         // Augmented_teacher savepoint reached.
         upgrade_plugin_savepoint(true, 2018011700, 'local', 'augmented_teacher');
     }
+
+    if ($oldversion < 2018070100) {
+
+        $table = new xmldb_table('local_augmented_teacher_rem');
+
+        $field = new xmldb_field('courseid', XMLDB_TYPE_INTEGER, '18', null, null, null, null, 'userid');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $field = new xmldb_field('messagetype', XMLDB_TYPE_INTEGER, '18', null, XMLDB_NOTNULL, null, '0', 'title');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $field = new xmldb_field('cmid2', XMLDB_TYPE_INTEGER, '18', null, null, null, null, 'cmid');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $DB->execute("UPDATE {local_augmented_teacher_rem} SET messagetype=1");
+
+        // Augmented_teacher savepoint reached.
+        upgrade_plugin_savepoint(true, 2018070100, 'local', 'augmented_teacher');
+    }
+
+    if ($oldversion < 2018080101) {
+
+        // Define table local_augmented_teacher_exc to be created.
+        $table = new xmldb_table('local_augmented_teacher_exc');
+
+        // Adding fields to table local_augmented_teacher_exc.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '18', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('status', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('courseid', XMLDB_TYPE_INTEGER, '18', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '18', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timestart', XMLDB_TYPE_INTEGER, '18', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timeend', XMLDB_TYPE_INTEGER, '18', null, XMLDB_NOTNULL, null, '2147483647');
+        $table->add_field('modifierid', XMLDB_TYPE_INTEGER, '18', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '18', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '18', null, XMLDB_NOTNULL, null, '0');
+
+        // Adding keys to table local_augmented_teacher_exc.
+        $table->add_key('aug_userenro_enruse_uix', XMLDB_KEY_UNIQUE, array('courseid', 'userid'));
+        $table->add_key('id', XMLDB_KEY_PRIMARY, array('id'));
+
+        // Adding indexes to table local_augmented_teacher_exc.
+        $table->add_index('aug_userenro_enr_ix', XMLDB_INDEX_NOTUNIQUE, array('courseid'));
+        $table->add_index('aug_userenro_use_ix', XMLDB_INDEX_NOTUNIQUE, array('userid'));
+        $table->add_index('aug_userenro_mod_ix', XMLDB_INDEX_NOTUNIQUE, array('modifierid'));
+
+        // Conditionally launch create table for local_augmented_teacher_exc.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Augmented_teacher savepoint reached.
+        upgrade_plugin_savepoint(true, 2018080101, 'local', 'augmented_teacher');
+    }
+
 
     return true;
 }

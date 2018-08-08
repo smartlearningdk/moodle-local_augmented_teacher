@@ -72,7 +72,7 @@ $activities = $modinfo->get_cms();
 $table = '';
 $rows = '';
 
-$actioniconurl = $OUTPUT->pix_url('a/view_list_active');
+$actioniconurl = local_augmented_teacher_pix_url('a/view_list_active');
 $actionicontext = get_string('list', 'local_augmented_teacher');
 $actionicon = html_writer::img($actioniconurl, $actionicontext, array('width' => '16', 'height' => '16'));
 
@@ -88,7 +88,9 @@ foreach ($activities as $key => $mod) {
     }
 
     $modurl = new moodle_url('/mod/' . $mod->modname . '/view.php', array('id' => $mod->id));
-    $icon = html_writer::img($OUTPUT->pix_url('icon', $mod->modname), ucfirst($mod->modname));
+    $icon = html_writer::img(local_augmented_teacher_pix_url('icon', $mod->modname), ucfirst($mod->modname),
+        array('class' => 'iconlarge activityicon', 'role' => 'presentation')
+    );
 
     $actionlinks = '';
     $actionurl = new moodle_url('/local/augmented_teacher/reminders_list.php', array('id' => $mod->id));

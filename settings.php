@@ -23,30 +23,19 @@
  * @copyright  (C) 2017 SmartLearning Inc https://www.smartlearning.dk
  */
 
-require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
+defined('MOODLE_INTERNAL') || die();
 
-$formaction = required_param('formaction', PARAM_FILE);
-$id = required_param('id', PARAM_INT);
+$settings = new admin_settingpage('local_augmented_teacher_settings',  get_string('pluginname', 'local_augmented_teacher'));
 
-$PAGE->set_url('/user/action_redir.php', array('formaction' => $formaction, 'id' => $id));
-
-// Add every page will be redirected by this script.
-$actions = array(
-    'mergedmessages.php',
-    'messageselect.php',
-    'reminders.php',
-    'reminders_list.php',
-    'excluded_users.php',
-    'notloggedinreminders.php',
-    'recommendactivity.php'
+$options = array();
+for ($i = 0; $i < 24; $i++) {
+    $options[$i] = $i;
+}
+$settings->add(new admin_setting_configselect('local_augmented_teacher/notloggedinhour',
+    get_string('notloggedinhour', 'local_augmented_teacher'), '', 6, $options)
+);
+$settings->add(new admin_setting_configselect('local_augmented_teacher/recommendactivityhour',
+    get_string('recommendactivityhour', 'local_augmented_teacher'), '', 6, $options)
 );
 
-if (array_search($formaction, $actions) === false) {
-    print_error('unknownuseraction');
-}
-
-if (!confirm_sesskey()) {
-    print_error('confirmsesskeybad');
-}
-
-require_once($formaction);
+$ADMIN->add('localplugins', $settings);

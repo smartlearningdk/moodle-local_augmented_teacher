@@ -122,8 +122,13 @@ if (has_capability('moodle/course:viewparticipants', $coursecontext) ||
 }
 $PAGE->navbar->add($strtitle);
 
-$module = array('name' => 'local_augmented_teacher', 'fullpath' => '/local/augmented_teacher/module.js');
-$PAGE->requires->js_init_call('M.local_augmented_teacher.init_shortcode', null, false, $module);
+$editor = editors_get_preferred_editor();
+$editorpluginname =  get_class($editor);
+
+if ($editorpluginname == 'atto_texteditor') {
+    $module = array('name' => 'local_augmented_teacher', 'fullpath' => '/local/augmented_teacher/module.js');
+    $PAGE->requires->js_init_call('M.local_augmented_teacher.init_shortcode', null, false, $module);
+}
 
 $settingnode = $PAGE->settingsnav->find('local_augmented_teacher', navigation_node::TYPE_SETTING);
 $settingnode->make_active();
@@ -172,7 +177,7 @@ if (!empty($messagebody) && !$edit && !$deluser && ($preview || $send)) {
 
                 $replace = array(
                     'lastname' => $user->lastname,
-                    'firstname' => $user->firstname,
+                    'firstname' => local_augmented_get_first_firstname($user->firstname),
                     'coursename' => $course->fullname
                 );
 

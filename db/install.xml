@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/augmented_teacher/db" VERSION="20180105" COMMENT="XMLDB file for Moodle local/augmented_teacher"
+<XMLDB PATH="local/augmented_teacher/db" VERSION="20180801" COMMENT="XMLDB file for Moodle local/augmented_teacher"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -8,8 +8,11 @@
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="18" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="18" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="courseid" TYPE="int" LENGTH="18" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="cmid" TYPE="int" LENGTH="18" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="cmid2" TYPE="int" LENGTH="18" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="title" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="messagetype" TYPE="int" LENGTH="18" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="message" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="type" TYPE="int" LENGTH="2" NOTNULL="true" SEQUENCE="false"/>
         <FIELD NAME="timeinterval" TYPE="int" LENGTH="18" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
@@ -33,6 +36,28 @@
       <KEYS>
         <KEY NAME="id" TYPE="primary" FIELDS="id"/>
       </KEYS>
+    </TABLE>
+    <TABLE NAME="local_augmented_teacher_exc" COMMENT="local_augmented_teacher_exc table retrofitted from MySQL">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="18" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="status" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="courseid" TYPE="int" LENGTH="18" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="18" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timestart" TYPE="int" LENGTH="18" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timeend" TYPE="int" LENGTH="18" NOTNULL="true" DEFAULT="2147483647" SEQUENCE="false"/>
+        <FIELD NAME="modifierid" TYPE="int" LENGTH="18" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="18" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="18" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="aug_userenro_enruse_uix" TYPE="unique" FIELDS="courseid, userid"/>
+        <KEY NAME="id" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="aug_userenro_enr_ix" UNIQUE="false" FIELDS="courseid"/>
+        <INDEX NAME="aug_userenro_use_ix" UNIQUE="false" FIELDS="userid"/>
+        <INDEX NAME="aug_userenro_mod_ix" UNIQUE="false" FIELDS="modifierid"/>
+      </INDEXES>
     </TABLE>
   </TABLES>
 </XMLDB>
