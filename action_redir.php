@@ -38,7 +38,8 @@ $actions = array(
     'reminders_list.php',
     'excluded_users.php',
     'notloggedinreminders.php',
-    'recommendactivity.php'
+    'recommendactivity.php',
+    'coursenotificationsettings.php'
 );
 
 if (array_search($formaction, $actions) === false) {

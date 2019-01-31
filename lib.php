@@ -112,8 +112,7 @@ function local_augmented_teacher_send_reminder_message() {
         return;
     }
 
-    cron_setup_user();
-    $time = time();
+    cron_setup_user(null, null, true);
 
     $sql = "SELECT rem.*, cm.completionexpected,
                    case rem.type
@@ -129,35 +128,62 @@ function local_augmented_teacher_send_reminder_message() {
 
     $rs = $DB->get_recordset_sql($sql, array(0, 1, MESAGE_TYPE_REMINDER));
     foreach ($rs as $reminder) {
-        // Disable unsent reminder after 24 hours.
-        if (($time - $reminder->scheduled) >= 24 * 60 * 60) {
-            local_augmented_teacher_disable_reminder($reminder->id);
-            continue;
-        } else if ($reminder->scheduled <= $time) {
+
+        $time = time();
+
+        if ($reminder->scheduled <= $time) {
             // Send messages.
             if ($cm = get_coursemodule_from_id('', $reminder->cmid)) {
-                $course = $DB->get_record('course', array('id' => $cm->course));
+                $reminderobj = new local_augmented_teacher\reminder($reminder->id, $cm->course);
+                $course = $reminderobj->course;
                 $context = context_course::instance($course->id);
                 $instance = $DB->get_record($cm->modname, array('id' => $cm->instance));
 
+                // Disable unsent reminder after 24 hours.
+                if (($time - $reminder->scheduled) >= 24 * 60 * 60) {
+                    $reminderobj->disable_reminder();
+                    continue;
+                }
+
+                // Course is expired.
+                if ($reminderobj->is_course_expired($time)) {
+                    $reminderobj->disable_reminder();
+                    continue;
+                }
+
+                // Office hours.
+                if (!$reminderobj->is_in_officehours($time)) {
+                    continue;
+                }
+
+                // Quarters.
+                if (!$reminderobj->is_allowed_time($time)) {
+                    continue;
+                }
+
+                // Paused.
+                if (!$reminderobj->is_paused()) {
+                    continue;
+                }
+
                 $completion = new completion_info($course);
                 if (!$completion->is_enabled($cm) || $cm->completionexpected == 0) {
-                    local_augmented_teacher_disable_reminder($reminder->id);
+                    $reminderobj->disable_reminder();
                     continue;
                 }
                 if (!$userfrom = $DB->get_record('user', array('id' => $reminder->userid, 'deleted' => 0))) {
-                    local_augmented_teacher_disable_reminder($reminder->id);
+                    $reminderobj->disable_reminder();
                     continue;
                 }
 
                 $users = get_enrolled_users($context, 'local/augmented_teacher:receivereminder');
+
                 $completionrate = local_augmented_teacher_activity_completion_rate($cm, $users);
 
                 foreach ($users as $user) {
-                    if (local_augmented_is_excluded($user->id, $course->id)) {
-                        continue;
-                    }
-                    if (local_augmented_teacher_is_activity_completed($cm, $user)) {
+                    if ($user->suspended
+                        || local_augmented_is_excluded($user->id, $course->id)
+                        || local_augmented_teacher_is_activity_completed($cm, $user)) {
                         continue;
                     }
                     $search = array(
@@ -219,7 +245,7 @@ function local_augmented_teacher_send_notloggedin_reminder_message() {
 
     mtrace('Processing not logged in reminders...');
 
-    cron_setup_user();
+    cron_setup_user(null, null, true);
 
     $sql = "SELECT rem.id,
                    rem.userid, 
@@ -236,19 +262,45 @@ function local_augmented_teacher_send_notloggedin_reminder_message() {
 
     $rs = $DB->get_recordset_sql($sql, array(MESAGE_TYPE_NOTLOGGED));
     foreach ($rs as $reminder) {
+
+        $time = time();
+
          if ($reminder->timeinterval) {
+             $reminderobj = new local_augmented_teacher\reminder($reminder->id);
             // Send messages.
-            if ($course = $DB->get_record('course', array('id' => $reminder->courseid))) {
+            if ($course = $reminderobj->course) {
+
                 $context = context_course::instance($course->id);
 
-                if (!$userfrom = $DB->get_record('user', array('id' => $reminder->userid, 'deleted' => 0))) {
+                if (!$userfrom = $reminderobj->sender) {
+                    continue;
+                }
+
+                // Course is expired.
+                if ($reminderobj->is_course_expired($time)) {
+                    $reminderobj->disable_reminder();
+                    continue;
+                }
+
+                // Office hours.
+                if (!$reminderobj->is_in_officehours($time)) {
+                    continue;
+                }
+
+                // Quarters.
+                if (!$reminderobj->is_allowed_time($time)) {
+                    continue;
+                }
+
+                // Paused.
+                if (!$reminderobj->is_paused()) {
                     continue;
                 }
 
                 $users = get_enrolled_users($context, 'local/augmented_teacher:receivereminder');
 
                 foreach ($users as $user) {
-                    if (local_augmented_is_excluded($user->id, $course->id)) {
+                    if ($user->suspended || local_augmented_is_excluded($user->id, $course->id)) {
                         continue;
                     }
                     if ($timenow < $reminder->timeinterval + $user->lastaccess) {
@@ -315,7 +367,7 @@ function local_augmented_teacher_send_activity_recommendation() {
 
     mtrace('Processing recommended activity messages...');
 
-    cron_setup_user();
+    cron_setup_user(null, null, true);
 
     $sql = "SELECT rem.id,
                    rem.userid, 
@@ -333,18 +385,43 @@ function local_augmented_teacher_send_activity_recommendation() {
                AND rem.deleted = 0";
 
     $rs = $DB->get_recordset_sql($sql, array(MESAGE_TYPE_RECOMMEND));
+
     foreach ($rs as $reminder) {
+
+        $time = time();
 
          if ($reminder->timeinterval) {
              $cm = get_coursemodule_from_id('', $reminder->cmid);
-             $course = $DB->get_record('course', array('id' => $cm->course));
+             $reminderobj = new local_augmented_teacher\reminder($reminder->id, $cm->course);
+             $course = $reminderobj->course;
              $cm2 = get_coursemodule_from_id('', $reminder->cmid2);
              $course2 = $DB->get_record('course', array('id' => $cm2->course));
 
              if ($cm && $cm2 && $course && $course2 && $course->id == $reminder->courseid) {
                  $context = context_course::instance($course->id);
 
-                 if (!$userfrom = $DB->get_record('user', array('id' => $reminder->userid, 'deleted' => 0))) {
+                 if (!$userfrom = $reminderobj->sender) {
+                     continue;
+                 }
+
+                 // Course is expired.
+                 if ($reminderobj->is_course_expired($time)) {
+                     $reminderobj->disable_reminder();
+                     continue;
+                 }
+
+                 // Office hours.
+                 if (!$reminderobj->is_in_officehours($time)) {
+                     continue;
+                 }
+
+                 // Quarters.
+                 if (!$reminderobj->is_allowed_time($time)) {
+                     continue;
+                 }
+
+                 // Paused.
+                 if (!$reminderobj->is_paused()) {
                      continue;
                  }
 
@@ -373,6 +450,10 @@ function local_augmented_teacher_send_activity_recommendation() {
                      }
 
                      $user = $DB->get_record('user', array('id' => $completion->userid));
+
+                     if ($user->suspended) {
+                         continue;
+                     }
 
                      $search = array(
                          'lastname' => '{{lastname}}',

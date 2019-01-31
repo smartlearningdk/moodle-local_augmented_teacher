@@ -144,6 +144,50 @@ function xmldb_local_augmented_teacher_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2018080101, 'local', 'augmented_teacher');
     }
 
+    if ($oldversion < 2019010800) {
 
+        // Define table local_augmented_teacher_ofh to be created.
+        $table = new xmldb_table('local_augmented_teacher_ofh');
+
+        // Adding fields to table local_augmented_teacher_ofh.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '18', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '18', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('dayofweek', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timestart', XMLDB_TYPE_INTEGER, '18', null, null, null, '0');
+        $table->add_field('timeend', XMLDB_TYPE_INTEGER, '18', null, null, null, '0');
+
+        // Adding keys to table local_augmented_teacher_ofh.
+        $table->add_key('id', XMLDB_KEY_PRIMARY, array('id'));
+        $table->add_key('mdl_locaaugmteacofh_day_uix', XMLDB_KEY_UNIQUE, array('dayofweek', 'userid'));
+
+        // Adding indexes to table local_augmented_teacher_ofh.
+        $table->add_index('mdl_locaaugmteacofh_use_ix', XMLDB_INDEX_NOTUNIQUE, array('userid'));
+
+        // Conditionally launch create table for local_augmented_teacher_ofh.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Define table local_augmented_teacher_stp to be created.
+        $table = new xmldb_table('local_augmented_teacher_stp');
+
+        // Adding fields to table local_augmented_teacher_stp.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '18', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('courseid', XMLDB_TYPE_INTEGER, '18', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timestop', XMLDB_TYPE_INTEGER, '18', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timeresume', XMLDB_TYPE_INTEGER, '18', null, XMLDB_NOTNULL, null, '0');
+
+        // Adding keys to table local_augmented_teacher_stp.
+        $table->add_key('id', XMLDB_KEY_PRIMARY, array('id'));
+        $table->add_key('courseid', XMLDB_KEY_UNIQUE, array('courseid'));
+
+        // Conditionally launch create table for local_augmented_teacher_stp.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Augmented_teacher savepoint reached.
+        upgrade_plugin_savepoint(true, 2019010800, 'local', 'augmented_teacher');
+    }
     return true;
 }

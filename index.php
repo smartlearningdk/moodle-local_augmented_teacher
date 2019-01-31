@@ -88,6 +88,7 @@ if ($CFG->messaging) {
     $tasklist['notloggedinreminders.php'] = get_string('notloggedinreminder', 'local_augmented_teacher');
     $tasklist['excluded_users.php'] = get_string('excludeusersfromreminders', 'local_augmented_teacher');
     $tasklist['recommendactivity.php'] = get_string('recommendactivity', 'local_augmented_teacher');
+    $tasklist['coursenotificationsettings.php'] = get_string('coursenotificationsettings', 'local_augmented_teacher');
 }
 echo $OUTPUT->help_icon('choosetask', 'local_augmented_teacher');
 echo html_writer::tag('label', get_string('choosetask', 'local_augmented_teacher'), array('for' => 'formactionid'))  . ' ';
@@ -95,5 +96,60 @@ echo html_writer::select($tasklist, 'formaction', '', array('' => 'choosedots'),
 
 echo html_writer::empty_tag('input', array('type' => 'hidden', 'name' => 'id', 'value' => $course->id));
 echo html_writer::end_tag('form');
+
+echo html_writer::empty_tag('hr', array('style' => 'margin-top:30px; margin-bottom:40px'));
+
+// Table columns.
+$table = new html_table();
+$table->attributes = array('style' => 'font-size: 90%; width:310px;', 'class' => '');
+                      
+$table->head = array(
+    get_string('day', 'local_augmented_teacher'),
+    get_string('hours', 'local_augmented_teacher'),
+);
+$days = array('sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday');
+for ($i = 0; $i <  7; $i++) {
+    $row = new html_table_row();
+    $row->cells = array();
+    $row->cells[] = get_string($days[$i], 'calendar');
+
+    if ($officehour = $DB->get_record('local_augmented_teacher_ofh', array('userid' => $USER->id, 'dayofweek' => $i))) {
+        $row->cells[] = gmdate('H:i', $officehour->timestart).'-'.gmdate('H:i', $officehour->timeend);
+    } else {
+        $row->cells[] = '-';
+    }
+
+    $table->data[] = $row;
+}
+
+$title = get_string('officehours', 'local_augmented_teacher');
+
+
+if ($istopped = $DB->get_record('local_augmented_teacher_stp', array('courseid' => $course->id))) {
+    $time = time();
+    if ($istopped->timestop < $time && $time < $istopped->timeresume) {
+        echo html_writer::tag('div', get_string('pauseremiderwarning', 'local_augmented_teacher', userdate($istopped->timeresume)),
+            array('class' => 'alert alert-info'));
+    }
+}
+echo html_writer::tag('h3', $title, array('style' => 'margin-bottom: 20px;'));
+echo html_writer::table($table);
+
+// Add record form.
+$formurl = new moodle_url('/local/augmented_teacher/officehours_edit.php');
+$hiddenparams =
+    html_writer::empty_tag('input', array('type' => 'hidden', 'name' => 'courseid', 'value' => $course->id)).
+    html_writer::empty_tag('input', array('type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()));
+$submitbutton  = html_writer::tag('button', get_string('update', 'local_augmented_teacher'), array(
+    'class' => 'btn btn-add-exclusion',
+    'type' => 'submit',
+    'value' => 'submit',
+));
+$form = html_writer::tag('form', $hiddenparams . $submitbutton, array(
+    'action' => $formurl->out(),
+    'method' => 'post',
+    'autocomplete' => 'off'
+));
+echo html_writer::div($form, 'add-exclusion-form-wrapper', array('id' => 'add-record-btn'));
 
 echo $OUTPUT->footer();

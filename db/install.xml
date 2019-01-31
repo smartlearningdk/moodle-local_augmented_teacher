@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/augmented_teacher/db" VERSION="20180801" COMMENT="XMLDB file for Moodle local/augmented_teacher"
+<XMLDB PATH="local/augmented_teacher/db" VERSION="20190108" COMMENT="XMLDB file for Moodle local/augmented_teacher"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -58,6 +58,34 @@
         <INDEX NAME="aug_userenro_use_ix" UNIQUE="false" FIELDS="userid"/>
         <INDEX NAME="aug_userenro_mod_ix" UNIQUE="false" FIELDS="modifierid"/>
       </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_augmented_teacher_ofh" COMMENT="local_augmented_teacher_ofh table retrofitted from MySQL">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="18" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="18" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="dayofweek" TYPE="int" LENGTH="2" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timestart" TYPE="int" LENGTH="18" NOTNULL="false" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timeend" TYPE="int" LENGTH="18" NOTNULL="false" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="id" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="mdl_locaaugmteacofh_day_uix" TYPE="unique" FIELDS="dayofweek, userid"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="mdl_locaaugmteacofh_use_ix" UNIQUE="false" FIELDS="userid"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_augmented_teacher_stp" COMMENT="local_augmented_teacher_stp table retrofitted from MySQL">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="18" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="courseid" TYPE="int" LENGTH="18" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="timestop" TYPE="int" LENGTH="18" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timeresume" TYPE="int" LENGTH="18" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="id" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="courseid" TYPE="unique" FIELDS="courseid"/>
+      </KEYS>
     </TABLE>
   </TABLES>
 </XMLDB>
