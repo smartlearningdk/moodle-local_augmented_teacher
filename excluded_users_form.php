@@ -46,7 +46,7 @@ class excluded_users_form extends moodleform {
 
             $excludedusers =  $DB->get_records_sql($sql, array($customdate['courseid']));
 
-            $enrolleduseroptions = array('0' => 'Select');
+            $enrolleduseroptions = array('0' => get_string('select', 'local_augmented_teacher'));
             foreach ($enrolledusers as $enrolleduser) {
                 if ($excludedusers && in_array($enrolleduser->id, array_keys($excludedusers))) {
                     continue;
