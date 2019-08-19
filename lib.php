@@ -162,7 +162,7 @@ function local_augmented_teacher_send_reminder_message() {
                 }
 
                 // Paused.
-                if (!$reminderobj->is_paused()) {
+                if ($reminderobj->is_paused()) {
                     continue;
                 }
 
