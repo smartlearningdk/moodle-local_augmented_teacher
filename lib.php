@@ -346,7 +346,7 @@ function local_augmented_teacher_send_activity_recommendation() {
     global $CFG, $DB;
 
     require_once($CFG->dirroot . '/lib/completionlib.php');
-    
+
     $recommendactivitylast = get_config('local_augmented_teacher', 'recommendactivitylast');
     $recommendactivityhour = get_config('local_augmented_teacher', 'recommendactivityhour');
     if (is_null($recommendactivityhour)) {
@@ -621,4 +621,50 @@ function local_augmented_get_activity_list_options($courseid) {
     }
 
     return $activitylist;
+}
+
+/**
+ * Prints a basic textarea field.
+ *
+ * When using this function, you should
+ *
+ * @global object
+ * @param bool $unused No longer used.
+ * @param int $rows Number of rows to display  (minimum of 10 when $height is non-null)
+ * @param int $cols Number of columns to display (minimum of 65 when $width is non-null)
+ * @param null $width (Deprecated) Width of the element; if a value is passed, the minimum value for $cols will be 65. Value is otherwise ignored.
+ * @param null $height (Deprecated) Height of the element; if a value is passe, the minimum value for $rows will be 10. Value is otherwise ignored.
+ * @param string $name Name to use for the textarea element.
+ * @param string $value Initial content to display in the textarea.
+ * @param int $obsolete deprecated
+ * @param bool $return If false, will output string. If true, will return string value.
+ * @param string $id CSS ID to add to the textarea element.
+ * @return string|void depending on the value of $return
+ */
+function local_augmented_print_textarea($unused, $rows, $cols, $width, $height, $name, $value='', $obsolete=0, $return=false, $id='') {
+    /// $width and height are legacy fields and no longer used as pixels like they used to be.
+    /// However, you can set them to zero to override the mincols and minrows values below.
+
+    global $OUTPUT;
+
+    $mincols = 65;
+    $minrows = 10;
+
+    if ($id === '') {
+        $id = 'edit-'.$name;
+    }
+
+    if ($height && ($rows < $minrows)) {
+        $rows = $minrows;
+    }
+    if ($width && ($cols < $mincols)) {
+        $cols = $mincols;
+    }
+
+    $textarea = $OUTPUT->print_textarea($name, $id, $value, $rows, $cols);
+    if ($return) {
+        return $textarea;
+    }
+
+    echo $textarea;
 }

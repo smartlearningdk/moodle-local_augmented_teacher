@@ -27,7 +27,11 @@ require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 require_once($CFG->dirroot.'/message/lib.php');
 
 $id = required_param('id', PARAM_INT);
-$messagebody = optional_param('messagebody', '', PARAM_CLEANHTML);
+if ($messagebodyarray = optional_param_array('messagebody', '', PARAM_CLEANHTML)) {
+    $messagebody = $messagebodyarray['text'];
+} else {
+    $messagebody = '';
+}
 $send = optional_param('send', '', PARAM_BOOL);
 $preview = optional_param('preview', '', PARAM_BOOL);
 $edit = optional_param('edit', '', PARAM_BOOL);
@@ -37,7 +41,7 @@ $deluser = optional_param('deluser', 0, PARAM_INT);
 
 $url = new moodle_url('/user/messageselect.php', array('id' => $id));
 if ($messagebody !== '') {
-    $url->param('messagebody', $messagebody);
+    $url->param('messagebody[text]', $messagebody);
 }
 if ($send !== '') {
     $url->param('send', $send);
@@ -111,7 +115,7 @@ if ($course->id == SITEID) {
     $strtitle = get_string('sitemessage');
     $PAGE->set_pagelayout('admin');
 } else {
-    $strtitle = get_string('coursemessage');
+    $strtitle = get_string('coursemessage', 'local_augmented_teacher');
     $PAGE->set_pagelayout('incourse');
 }
 
@@ -143,9 +147,9 @@ if (empty($CFG->messaging)) {
 
 if ($count) {
     if ($count == 1) {
-        $heading = get_string('addedrecip', 'moodle', $count);
+        $heading = get_string('addedrecip', 'local_augmented_teacher', $count);
     } else {
-        $heading = get_string('addedrecips', 'moodle', $count);
+        $heading = get_string('addedrecips', 'local_augmented_teacher', $count);
     }
     echo $OUTPUT->heading($heading);
 }
@@ -160,7 +164,7 @@ if (!empty($messagebody) && !$edit && !$deluser && ($preview || $send)) {
 <input type="hidden" name="format" value="'.$format.'" />
 <input type="hidden" name="sesskey" value="' . sesskey() . '" />
 ';
-            echo "<h3>".get_string('previewhtml')."</h3>";
+            echo "<h3>".get_string('previewhtml', 'local_augmented_teacher')."</h3>";
             echo "<div class=\"messagepreview\">\n".format_text($messagebody, $format)."\n</div>\n";
             echo '<p align="center"><input type="submit" name="send" value="'.get_string('sendmessage', 'message').'" />'."\n";
             echo '<input type="submit" name="edit" value="'.get_string('update').'" /></p>';
@@ -210,11 +214,11 @@ if (!empty($messagebody) && !$edit && !$deluser && ($preview || $send)) {
     }
 }
 
-echo '<p align="center"><a href="'.$returnto.'">'.get_string("keepsearching").'</a>'.
-    ((count($SESSION->emailto[$id])) ? ', '.get_string('usemessageform') : '').'</p>';
+echo '<p align="center"><a href="'.$returnto.'">'.get_string("keepsearching", 'local_augmented_teacher').'</a>'.
+    ((count($SESSION->emailto[$id])) ? ', '.get_string('usemessageform', 'local_augmented_teacher') : '').'</p>';
 
 if ((!empty($send) || !empty($preview) || !empty($edit)) && (empty($messagebody))) {
-    echo $OUTPUT->notification(get_string('allfieldsrequired'));
+    echo $OUTPUT->notification(get_string('allfieldsrequired', 'local_augmented_teacher'));
 }
 
 if (count($SESSION->emailto[$id])) {
