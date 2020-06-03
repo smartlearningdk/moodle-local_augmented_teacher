@@ -293,7 +293,7 @@ function local_augmented_teacher_send_notloggedin_reminder_message() {
                 }
 
                 // Paused.
-                if (!$reminderobj->is_paused()) {
+                if ($reminderobj->is_paused()) {
                     continue;
                 }
 
@@ -304,9 +304,6 @@ function local_augmented_teacher_send_notloggedin_reminder_message() {
                         continue;
                     }
                     if ($timenow < $reminder->timeinterval + $user->lastaccess) {
-                        continue;
-                    }
-                    if ($timenow - $user->lastaccess - $reminder->timeinterval > 24*60*60) {
                         continue;
                     }
 
@@ -421,7 +418,7 @@ function local_augmented_teacher_send_activity_recommendation() {
                  }
 
                  // Paused.
-                 if (!$reminderobj->is_paused()) {
+                 if ($reminderobj->is_paused()) {
                      continue;
                  }
 
