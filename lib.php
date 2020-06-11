@@ -345,7 +345,7 @@ function local_augmented_teacher_send_notloggedin_reminder_message() {
                             $has_sent = true;
                         }
 
-                        mtrace("Remind with id {$reminder->id} had been sent to user with id {$user->id}");
+                        mtrace("\tRemind with id {$reminder->id} had been sent to the user with id {$user->id}");
                     }
                     else {
                         mtrace("\tCannot send the reminder with id {$reminder->id} to the user with id {$user->id}. May cause by incorrect mail configuration");
@@ -520,7 +520,7 @@ function local_augmented_teacher_send_activity_recommendation() {
                              $has_sent = true;
                          }
 
-                         mtrace("Remind with id {$reminder->id} had been sent to user with id {$user->id}");
+                         mtrace("\tRemind with id {$reminder->id} had been sent to the user with id {$user->id}");
                      }
                      else {
                          mtrace("\tCannot send the reminder with id {$reminder->id} to the user with id {$user->id}. May cause by incorrect mail configuration");
