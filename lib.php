@@ -225,6 +225,7 @@ function local_augmented_teacher_send_reminder_message() {
 function local_augmented_teacher_send_notloggedin_reminder_message() {
     global $CFG, $DB;
 
+    $has_sent = false;
     $notloggedinlast = get_config('local_augmented_teacher', 'notloggedinlast');
     $notloggedinhour = get_config('local_augmented_teacher', 'notloggedinhour');
     if (is_null($notloggedinhour)) {
@@ -273,37 +274,46 @@ function local_augmented_teacher_send_notloggedin_reminder_message() {
                 $context = context_course::instance($course->id);
 
                 if (!$userfrom = $reminderobj->sender) {
+                    mtrace("\tCannot find the sender of the reminder with id {$reminder->id}.");
                     continue;
                 }
 
                 // Course is expired.
                 if ($reminderobj->is_course_expired($time)) {
+                    mtrace("\tCourse with id {$course->id} is already expired. Reminder with id {$reminder->id} is now disabled.");
                     $reminderobj->disable_reminder();
                     continue;
                 }
 
                 // Office hours.
                 if (!$reminderobj->is_in_officehours($time)) {
+                    mtrace("\tCannot send the reminder with id {$reminder->id} out of the office hour.");
                     continue;
                 }
 
                 // Quarters.
                 if (!$reminderobj->is_allowed_time($time)) {
+                    mtrace("\tCannot send the reminder with id {$reminder->id} in current time(". date('Y-m-d H:i:s', $time) .") is not allow by the setting.");
                     continue;
                 }
 
                 // Paused.
                 if ($reminderobj->is_paused()) {
+                    mtrace("\tCannot send the reminder with id {$reminder->id} when it set on pause.");
                     continue;
                 }
 
                 $users = get_enrolled_users($context, 'local/augmented_teacher:receivereminder');
+                //enrol_get_course_users('d')
+
 
                 foreach ($users as $user) {
                     if ($user->suspended || local_augmented_is_excluded($user->id, $course->id)) {
+                        mtrace("\tCannot send the reminder with id {$reminder->id} to the user with id {$user->id}. Because user is excluded from the course with id {$course->id}");
                         continue;
                     }
                     if ($timenow < $reminder->timeinterval + $user->lastaccess) {
+                        mtrace("\tCannot send the reminder with id {$reminder->id} to the user with id {$user->id}. User has already been login");
                         continue;
                     }
 
@@ -329,14 +339,30 @@ function local_augmented_teacher_send_notloggedin_reminder_message() {
                         $log->mid = $mid;
                         $log->timecreated = time();
                         $DB->insert_record('local_augmented_teacher_log', $log);
+
+                        // Set sent status
+                        if ($has_sent === false) {
+                            $has_sent = true;
+                        }
+
+                        mtrace("\tRemind with id {$reminder->id} had been sent to the user with id {$user->id}");
+                    }
+                    else {
+                        mtrace("\tCannot send the reminder with id {$reminder->id} to the user with id {$user->id}. May cause by incorrect mail configuration");
                     }
                 }
+            }
+            else {
+                mtrace("\tCannot find the course for the reminder with id {$reminder->id}.");
             }
         }
     }
     $rs->close();
 
-    set_config('notloggedinlast', $timenow, 'local_augmented_teacher');
+    // Should only set if the actual message had been sent to the user
+    if ($has_sent) {
+        set_config('notloggedinlast', $timenow, 'local_augmented_teacher');
+    }
 }
 
 function local_augmented_teacher_send_activity_recommendation() {
@@ -344,6 +370,7 @@ function local_augmented_teacher_send_activity_recommendation() {
 
     require_once($CFG->dirroot . '/lib/completionlib.php');
 
+    $has_sent = false;
     $recommendactivitylast = get_config('local_augmented_teacher', 'recommendactivitylast');
     $recommendactivityhour = get_config('local_augmented_teacher', 'recommendactivityhour');
     if (is_null($recommendactivityhour)) {
@@ -398,27 +425,32 @@ function local_augmented_teacher_send_activity_recommendation() {
                  $context = context_course::instance($course->id);
 
                  if (!$userfrom = $reminderobj->sender) {
+                     mtrace("\tCannot find the sender of the reminder with id {$reminder->id}.");
                      continue;
                  }
 
                  // Course is expired.
                  if ($reminderobj->is_course_expired($time)) {
+                     mtrace("\tCourse with id {$course->id} is already expired. Reminder with id {$reminder->id} is now disabled.");
                      $reminderobj->disable_reminder();
                      continue;
                  }
 
                  // Office hours.
                  if (!$reminderobj->is_in_officehours($time)) {
+                     mtrace("\tCannot send the reminder with id {$reminder->id} out of the office hour.");
                      continue;
                  }
 
                  // Quarters.
                  if (!$reminderobj->is_allowed_time($time)) {
+                     mtrace("\tCannot send the reminder with id {$reminder->id} in current time(". date('Y-m-d H:i:s', $time) .") is not allow by the setting.");
                      continue;
                  }
 
                  // Paused.
                  if ($reminderobj->is_paused()) {
+                     mtrace("\tCannot send the reminder with id {$reminder->id} when it set on pause.");
                      continue;
                  }
 
@@ -443,12 +475,14 @@ function local_augmented_teacher_send_activity_recommendation() {
 
                  foreach ($rs2 as $completion) {
                      if (local_augmented_is_excluded($completion->userid, $course->id)) {
+                         mtrace("\tCannot send the reminder with id {$reminder->id} to the user with id {$completion->userid}. Because user is excluded from the course with id {$course->id}");
                          continue;
                      }
 
                      $user = $DB->get_record('user', array('id' => $completion->userid));
 
                      if ($user->suspended) {
+                         mtrace("\tCannot send the reminder with id {$reminder->id} to the user with id {$user->id}. User is suspended in the course with id {$course->id}");
                          continue;
                      }
 
@@ -480,6 +514,16 @@ function local_augmented_teacher_send_activity_recommendation() {
                          $log->mid = $mid;
                          $log->timecreated = time();
                          $DB->insert_record('local_augmented_teacher_log', $log);
+
+                         // Set sent status
+                         if ($has_sent === false) {
+                             $has_sent = true;
+                         }
+
+                         mtrace("\tRemind with id {$reminder->id} had been sent to the user with id {$user->id}");
+                     }
+                     else {
+                         mtrace("\tCannot send the reminder with id {$reminder->id} to the user with id {$user->id}. May cause by incorrect mail configuration");
                      }
                  }
                  $rs2->close();
@@ -488,7 +532,10 @@ function local_augmented_teacher_send_activity_recommendation() {
     }
     $rs->close();
 
-    set_config('recommendactivitylast', $timenow, 'local_augmented_teacher');
+    // Should only set last sent if the actual message had been sent to the user
+    if ($has_sent) {
+        set_config('recommendactivitylast', $timenow, 'local_augmented_teacher');
+    }
 }
 
 function local_augmented_teacher_disable_reminder($remid) {
