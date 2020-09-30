@@ -74,6 +74,7 @@ require_login($course);
 $systemcontext = context_system::instance();
 
 $PAGE->set_pagelayout('incourse');
+require_capability('local/augmented_teacher:mergedmessages', $context);
 require_capability('moodle/course:viewparticipants', $context);
 
 $rolenamesurl = new moodle_url("$CFG->wwwroot/local/augmented_teacher/mergedmessages.php?contextid=$context->id&sifirst=&silast=");
