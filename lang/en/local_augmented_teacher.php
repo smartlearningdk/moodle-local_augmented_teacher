@@ -59,7 +59,6 @@ $string['scheduled'] = 'Scheduled';
 $string['submit'] = 'Submit';
 $string['list'] = 'List';
 $string['sendremindermessage'] = 'Send reminder message';
-$string['augmented_teacher:receivereminder'] = 'Receive reminder';
 $string['yes'] = 'Yes';
 $string['no'] = 'No';
 $string['firstname'] = 'First name';
@@ -125,3 +124,12 @@ $string['formattexttype'] = 'Formatting';
 $string['currentlyselectedusers'] = 'Currently selected users';
 $string['allfieldsrequired'] = 'All fields are required';
 $string['previewhtml'] = 'HTML format preview';
+
+// Capabilities
+$string['augmented_teacher:receivereminder'] = 'Receive reminder';
+$string['augmented_teacher:mergedmessages'] = 'Allow user to use "Send merged messages"';
+$string['augmented_teacher:reminders'] = 'Allow user to use "Reminders"';
+$string['augmented_teacher:notloggedinreminders'] = 'Allow user to use "Not logged in reminders"';
+$string['augmented_teacher:excludeusersfromreminders'] = 'Allow user to use "Exclude users from receiving the reminders"';
+$string['augmented_teacher:recommendactivity'] = 'Allow user to use "Recommend activity"';
+$string['augmented_teacher:coursenotificationsettings'] = 'Allow user to use "Course notification settings"';

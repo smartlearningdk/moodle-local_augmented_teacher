@@ -51,6 +51,8 @@ $context = context_course::instance($course->id, MUST_EXIST);
 
 require_login($course);
 
+require_capability('local/augmented_teacher:excludeusersfromreminders', $context);
+
 $PAGE->set_url($thispageurl);
 $PAGE->set_pagelayout('incourse');
 $PAGE->set_context($context);
