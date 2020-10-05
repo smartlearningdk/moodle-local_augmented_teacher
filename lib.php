@@ -39,7 +39,15 @@ function local_augmented_teacher_extend_settings_navigation($settingsnav, $conte
         return;
     }
 
-    if (has_capability('moodle/course:bulkmessaging', $PAGE->context)) {
+    // Required at least one of these capability to access the plugin functionalities
+    $is_user_capable = has_capability('local/augmented_teacher:mergedmessages', $PAGE->context)
+        || has_capability('local/augmented_teacher:reminders', $PAGE->context)
+        || has_capability('local/augmented_teacher:notloggedinreminders', $PAGE->context)
+        || has_capability('local/augmented_teacher:excludeusersfromreminders', $PAGE->context)
+        || has_capability('local/augmented_teacher:recommendactivity', $PAGE->context)
+        || has_capability('local/augmented_teacher:coursenotificationsettings', $PAGE->context);
+
+    if ($is_user_capable) {
         if ($settingnode = $settingsnav->find('courseadmin', navigation_node::TYPE_COURSE)) {
 
             $keys = $settingnode->get_children_key_list();
@@ -52,7 +60,6 @@ function local_augmented_teacher_extend_settings_navigation($settingsnav, $conte
             $settingnode->add_node($node, $beforekey);
         }
     }
-    return;
 }
 
 /**

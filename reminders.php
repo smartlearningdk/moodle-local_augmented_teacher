@@ -49,6 +49,8 @@ require_login($course);
 $systemcontext = context_system::instance();
 
 $PAGE->set_pagelayout('incourse');
+
+require_capability('local/augmented_teacher:reminders', $context);
 require_capability('moodle/course:manageactivities', $context);
 
 $PAGE->set_title("$course->shortname: ".get_string('participants'));
