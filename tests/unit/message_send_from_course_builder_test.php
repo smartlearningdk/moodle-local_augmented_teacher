@@ -1,6 +1,6 @@
 <?php
 /**
- * @package     local_augmented_teacher\integration
+ * @package     local_augmented_teacher\unit
  * @copyright   2021 Praxis
  * @companyinfo https://praxis.dk
  */
@@ -18,7 +18,7 @@ defined('MOODLE_INTERNAL') || die();
 
 /**
  * Class message_send_from_course_builder_test
- * @package local_augmented_teacher\integration
+ * @package local_augmented_teacher\unit
  */
 class message_send_from_course_builder_test extends basic_testcase
 {
