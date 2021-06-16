@@ -23,6 +23,9 @@
  * @copyright  (C) 2017 SmartLearning Inc https://www.smartlearning.dk
  */
 
+use local_augmented_teacher\factory;
+use local_augmented_teacher\message_send_from_course_builder;
+
 defined('MOODLE_INTERNAL') || die();
 
 define('REMINDER_BEFORE_DUE', 1);
@@ -212,6 +215,13 @@ function local_augmented_teacher_send_reminder_message() {
                     $message = str_replace($search, $replace, $reminder->message);
                     $message = text_to_html($message);
                     $message = html_entity_decode($message);
+
+                    $message = factory::get_message_send_from_course_builder()->append(
+                        $message,
+                        $course,
+                        $user
+                    );
+
                     if ($mid = message_post_message($userfrom, $user, $message, FORMAT_HTML)) {
                         $log = new stdClass();
                         $log->userid = $user->id;
@@ -311,7 +321,6 @@ function local_augmented_teacher_send_notloggedin_reminder_message() {
                 }
 
                 $users = get_enrolled_users($context, 'local/augmented_teacher:receivereminder');
-                //enrol_get_course_users('d')
 
 
                 foreach ($users as $user) {
@@ -339,6 +348,14 @@ function local_augmented_teacher_send_notloggedin_reminder_message() {
                     $message = str_replace($search, $replace, $reminder->message);
                     $message = text_to_html($message);
                     $message = html_entity_decode($message);
+
+                    // Inject send from course URL
+                    $message = factory::get_message_send_from_course_builder()->append(
+                        $message,
+                        $course,
+                        $user
+                    );
+
                     if ($mid = message_post_message($userfrom, $user, $message, FORMAT_HTML)) {
                         $log = new stdClass();
                         $log->userid = $user->id;
@@ -514,6 +531,12 @@ function local_augmented_teacher_send_activity_recommendation() {
                      $message = str_replace($search, $replace, $reminder->message);
                      $message = text_to_html($message);
                      $message = html_entity_decode($message);
+                     $message = factory::get_message_send_from_course_builder()->append(
+                         $message,
+                         $course,
+                         $user
+                     );
+
                      if ($mid = message_post_message($userfrom, $user, $message, FORMAT_HTML)) {
                          $log = new stdClass();
                          $log->userid = $user->id;

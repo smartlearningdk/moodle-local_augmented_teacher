@@ -124,6 +124,16 @@ $string['formattexttype'] = 'Formatting';
 $string['currentlyselectedusers'] = 'Currently selected users';
 $string['allfieldsrequired'] = 'All fields are required';
 $string['previewhtml'] = 'HTML format preview';
+/**
+ * $a: {
+ *      id: int,
+ *      fullname: string,
+ *      shortname: string,
+ *      url: string,
+ *      link: string (HTMLElement <a>...</a>)
+ * }
+ */
+$string['sendfromcourse'] = '<p style="text-align: right;">Send from: {$a->link}</p>';
 
 // Capabilities
 $string['augmented_teacher:receivereminder'] = 'Receive reminder';
