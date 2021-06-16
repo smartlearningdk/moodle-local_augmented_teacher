@@ -349,7 +349,6 @@ function local_augmented_teacher_send_notloggedin_reminder_message() {
                     $message = text_to_html($message);
                     $message = html_entity_decode($message);
 
-                    // Inject send from course URL
                     $message = factory::get_message_send_from_course_builder()->append(
                         $message,
                         $course,
