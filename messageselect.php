@@ -23,6 +23,9 @@
  * @copyright  (C) 2017 SmartLearning Inc https://www.smartlearning.dk
  */
 
+use local_augmented_teacher\factory;
+use local_augmented_teacher\message_send_from_course_builder;
+
 require_once(dirname(dirname(dirname(__FILE__))) . '/config.php');
 require_once($CFG->dirroot.'/message/lib.php');
 
@@ -187,10 +190,16 @@ if (!empty($messagebody) && !$edit && !$deluser && ($preview || $send)) {
 
                 $messagebodywithshortcode = str_replace($search, $replace, $messagebody);
 
+                $messagebodywithshortcode = factory::get_message_send_from_course_builder()->append(
+                    $messagebodywithshortcode,
+                    $course,
+                    $user
+                );
+
                 if (!message_post_message($USER, $user, $messagebodywithshortcode, $format)) {
                     $user->fullname = fullname($user);
                     $fails[] = get_string('messagedselecteduserfailed', 'moodle', $user);
-                };
+                }
             }
             if (empty($fails)) {
                 echo $OUTPUT->heading(get_string('messagedselectedusers'));
