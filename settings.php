@@ -38,4 +38,16 @@ $settings->add(new admin_setting_configselect('local_augmented_teacher/recommend
     get_string('recommendactivityhour', 'local_augmented_teacher'), '', 6, $options)
 );
 
+$yesno = [
+    0 => get_string('no'),
+    1 => get_string('yes'),
+];
+$settings->add(new admin_setting_configselect(
+    'local_augmented_teacher/show_send_from_course_in_message',
+    get_string('show_send_from_course_in_message', 'local_augmented_teacher'),
+    get_string('show_send_from_course_in_message_desc', 'local_augmented_teacher'),
+    0,
+    $yesno
+));
+
 $ADMIN->add('localplugins', $settings);

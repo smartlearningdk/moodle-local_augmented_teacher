@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - MOODLE_310_STABLE
+      - MOODLE_39_STABLE
 
 env:
   php: 7.4

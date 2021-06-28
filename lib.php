@@ -216,7 +216,7 @@ function local_augmented_teacher_send_reminder_message() {
                     $message = text_to_html($message);
                     $message = html_entity_decode($message);
 
-                    $message = factory::get_message_send_from_course_builder()->append(
+                    $message = factory::append_message_send_from_course(
                         $message,
                         $course,
                         $user
@@ -349,7 +349,7 @@ function local_augmented_teacher_send_notloggedin_reminder_message() {
                     $message = text_to_html($message);
                     $message = html_entity_decode($message);
 
-                    $message = factory::get_message_send_from_course_builder()->append(
+                    $message = factory::append_message_send_from_course(
                         $message,
                         $course,
                         $user
@@ -530,7 +530,7 @@ function local_augmented_teacher_send_activity_recommendation() {
                      $message = str_replace($search, $replace, $reminder->message);
                      $message = text_to_html($message);
                      $message = html_entity_decode($message);
-                     $message = factory::get_message_send_from_course_builder()->append(
+                     $message = factory::append_message_send_from_course(
                          $message,
                          $course,
                          $user

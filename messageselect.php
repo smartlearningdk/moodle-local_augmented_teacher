@@ -190,7 +190,7 @@ if (!empty($messagebody) && !$edit && !$deluser && ($preview || $send)) {
 
                 $messagebodywithshortcode = str_replace($search, $replace, $messagebody);
 
-                $messagebodywithshortcode = factory::get_message_send_from_course_builder()->append(
+                $messagebodywithshortcode = factory::append_message_send_from_course(
                     $messagebodywithshortcode,
                     $course,
                     $user

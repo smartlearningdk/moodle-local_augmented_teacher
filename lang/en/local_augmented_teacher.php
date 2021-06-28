@@ -134,6 +134,8 @@ $string['previewhtml'] = 'HTML format preview';
  * }
  */
 $string['sendfromcourse'] = '<p style="text-align: right;">Send from: {$a->link}</p>';
+$string['show_send_from_course_in_message'] = 'Show send from course link in the message';
+$string['show_send_from_course_in_message_desc'] = 'The text can be modified in language string with "sendfromcourse" identifier.';
 
 // Capabilities
 $string['augmented_teacher:receivereminder'] = 'Receive reminder';
