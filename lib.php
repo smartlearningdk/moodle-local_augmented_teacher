@@ -124,20 +124,13 @@ function local_augmented_teacher_send_reminder_message() {
 
     cron_setup_user(null, null, true);
 
-    $sql = "SELECT rem.*, cm.completionexpected,
-                   case rem.type
-                       when ".REMINDER_BEFORE_DUE." then cm.completionexpected - rem.timeinterval
-                       when ".REMINDER_AFTER_DUE." then cm.completionexpected + rem.timeinterval
-                   end as scheduled
-              FROM {local_augmented_teacher_rem} rem
-              JOIN {course_modules} cm
-                ON rem.cmid = cm.id
-             WHERE rem.deleted = ?
-               AND rem.enabled = ?
-               AND rem.messagetype = ?";
+    $reminders_repo = \local_augmented_teacher\reminders_factory::get_repository();
+    $reminders = $reminders_repo->get_activity_reminders();
 
-    $rs = $DB->get_recordset_sql($sql, array(0, 1, MESAGE_TYPE_REMINDER));
-    foreach ($rs as $reminder) {
+    $user_enrolments_repo = \local_augmented_teacher\user_enrolments_factory::get_repository();
+    $user_enrolments = $user_enrolments_repo->get_from_reminders($reminders);
+
+    foreach ($reminders as $reminder) {
 
         $time = time();
 
@@ -191,7 +184,7 @@ function local_augmented_teacher_send_reminder_message() {
                 $completionrate = local_augmented_teacher_activity_completion_rate($cm, $users);
 
                 foreach ($users as $user) {
-                    if ($user->suspended
+                    if (local_augmented_is_suspended($user, $user_enrolments)
                         || local_augmented_is_excluded($user->id, $course->id)
                         || local_augmented_teacher_is_activity_completed($cm, $user)) {
                         continue;
@@ -236,7 +229,6 @@ function local_augmented_teacher_send_reminder_message() {
             local_augmented_teacher_disable_reminder($reminder->id);
         }
     }
-    $rs->close();
 }
 
 function local_augmented_teacher_send_notloggedin_reminder_message() {
@@ -265,21 +257,14 @@ function local_augmented_teacher_send_notloggedin_reminder_message() {
 
     cron_setup_user(null, null, true);
 
-    $sql = "SELECT rem.id,
-                   rem.userid, 
-                   rem.courseid, 
-                   rem.title, 
-                   rem.message, 
-                   rem.timeinterval
-              FROM {local_augmented_teacher_rem} rem
-              JOIN {course} c 
-                ON rem.courseid = c.id
-             WHERE rem.messagetype = ?
-               AND rem.enabled = 1
-               AND rem.deleted = 0";
+    $reminders_repo = \local_augmented_teacher\reminders_factory::get_repository();
+    $reminders = $reminders_repo->get_notloggedin_reminders();
 
-    $rs = $DB->get_recordset_sql($sql, array(MESAGE_TYPE_NOTLOGGED));
-    foreach ($rs as $reminder) {
+    $user_enrolments_repo = \local_augmented_teacher\user_enrolments_factory::get_repository();
+    $user_enrolments = $user_enrolments_repo->get_from_reminders($reminders);
+
+    $reminders = $reminders_repo->get_notloggedin_reminders();
+    foreach ($reminders as $reminder) {
 
         $time = time();
 
@@ -287,7 +272,6 @@ function local_augmented_teacher_send_notloggedin_reminder_message() {
              $reminderobj = new local_augmented_teacher\reminder($reminder->id);
             // Send messages.
             if ($course = $reminderobj->course) {
-
                 $context = context_course::instance($course->id);
 
                 if (!$userfrom = $reminderobj->sender) {
@@ -324,7 +308,7 @@ function local_augmented_teacher_send_notloggedin_reminder_message() {
 
 
                 foreach ($users as $user) {
-                    if ($user->suspended || local_augmented_is_excluded($user->id, $course->id)) {
+                    if (local_augmented_is_suspended($user, $user_enrolments) || local_augmented_is_excluded($user->id, $course->id)) {
                         mtrace("\tCannot send the reminder with id {$reminder->id} to the user with id {$user->id}. Because user is excluded from the course with id {$course->id}");
                         continue;
                     }
@@ -380,7 +364,6 @@ function local_augmented_teacher_send_notloggedin_reminder_message() {
             }
         }
     }
-    $rs->close();
 
     // Should only set if the actual message had been sent to the user
     if ($has_sent) {
@@ -416,24 +399,14 @@ function local_augmented_teacher_send_activity_recommendation() {
 
     cron_setup_user(null, null, true);
 
-    $sql = "SELECT rem.id,
-                   rem.userid, 
-                   rem.courseid, 
-                   rem.title, 
-                   rem.message, 
-                   rem.cmid, 
-                   rem.cmid2, 
-                   rem.timeinterval
-              FROM {local_augmented_teacher_rem} rem
-              JOIN {course} c 
-                ON rem.courseid = c.id
-             WHERE rem.messagetype = ?
-               AND rem.enabled = 1
-               AND rem.deleted = 0";
+    $reminders_repo = \local_augmented_teacher\reminders_factory::get_repository();
+    $reminders = $reminders_repo->get_activity_reminders();
 
-    $rs = $DB->get_recordset_sql($sql, array(MESAGE_TYPE_RECOMMEND));
+    $user_enrolments_repo = \local_augmented_teacher\user_enrolments_factory::get_repository();
+    $user_enrolments = $user_enrolments_repo->get_from_reminders($reminders);
 
-    foreach ($rs as $reminder) {
+    $reminders = $reminders_repo->get_activity_reminders();
+    foreach ($reminders as $reminder) {
 
         $time = time();
 
@@ -504,7 +477,7 @@ function local_augmented_teacher_send_activity_recommendation() {
 
                      $user = $DB->get_record('user', array('id' => $completion->userid));
 
-                     if ($user->suspended) {
+                     if (local_augmented_is_suspended($user, $user_enrolments)) {
                          mtrace("\tCannot send the reminder with id {$reminder->id} to the user with id {$user->id}. User is suspended in the course with id {$course->id}");
                          continue;
                      }
@@ -559,7 +532,6 @@ function local_augmented_teacher_send_activity_recommendation() {
             }
         }
     }
-    $rs->close();
 
     // Should only set last sent if the actual message had been sent to the user
     if ($has_sent) {
@@ -669,6 +641,28 @@ function local_augmented_is_excluded($userid, $courseid) {
                AND u.deleted = 0";
 
     return $DB->record_exists_sql($sql, array($userid, $courseid, time()));
+}
+
+function local_augmented_is_suspended($user, $user_enrolments) {
+    if (local_augmented_is_user_suspended($user)) {
+        return true;
+    }
+
+    foreach ($user_enrolments as $user_enrolment) {
+        if ($user_enrolment->userid === $user->id && local_augmented_is_enrolment_suspended($user_enrolment)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function local_augmented_is_user_suspended($user) {
+    return $user->suspended;
+}
+
+function local_augmented_is_enrolment_suspended($user_enrolment) {
+    return (int)$user_enrolment->status === 1;
 }
 
 function local_augmented_get_activity_list_options($courseid) {
