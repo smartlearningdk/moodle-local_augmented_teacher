@@ -189,5 +189,25 @@ function xmldb_local_augmented_teacher_upgrade($oldversion) {
         // Augmented_teacher savepoint reached.
         upgrade_plugin_savepoint(true, 2019010800, 'local', 'augmented_teacher');
     }
+
+    if ($oldversion < 2022073000) {
+        $table = new xmldb_table('local_augmented_teacher_sent');
+
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '18', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '18', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('reminderid', XMLDB_TYPE_INTEGER, '18', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timesent', XMLDB_TYPE_INTEGER, '18', null, XMLDB_NOTNULL, null, '0');
+
+        $table->add_key('id', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_index('userid_reminderid_ix', XMLDB_INDEX_NOTUNIQUE, ['userid', 'reminderid']);
+        $table->add_index('reminderid_ix', XMLDB_INDEX_NOTUNIQUE, ['reminderid']);
+        $table->add_index('userid_ix', XMLDB_INDEX_NOTUNIQUE, ['userid']);
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2022073000, 'local', 'augmented_teacher');
+    }
     return true;
 }
