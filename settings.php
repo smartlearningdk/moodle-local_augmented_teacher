@@ -32,7 +32,10 @@ for ($i = 0; $i < 24; $i++) {
     $options[$i] = $i;
 }
 $settings->add(new admin_setting_configselect('local_augmented_teacher/notloggedinhour',
-    get_string('notloggedinhour', 'local_augmented_teacher'), '', 6, $options)
+        get_string('notloggedinhour', 'local_augmented_teacher'), '', 6, $options)
+);
+$settings->add(new admin_setting_configcheckbox('local_augmented_teacher/resend_notloggedin_notification_infinitely',
+        get_string('resend_notloggedin_notification_infinitely', 'local_augmented_teacher'), get_string('resend_notloggedin_notification_infinitely_desc', 'local_augmented_teacher'), true)
 );
 $settings->add(new admin_setting_configselect('local_augmented_teacher/recommendactivityhour',
     get_string('recommendactivityhour', 'local_augmented_teacher'), '', 6, $options)

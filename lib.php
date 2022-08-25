@@ -234,8 +234,6 @@ function local_augmented_teacher_send_reminder_message() {
 function local_augmented_teacher_send_notloggedin_reminder_message() {
     global $CFG, $DB;
 
-    $has_sent = false;
-    $notloggedinlast = get_config('local_augmented_teacher', 'notloggedinlast');
     $notloggedinhour = get_config('local_augmented_teacher', 'notloggedinhour');
     if (is_null($notloggedinhour)) {
         debugging("local_augmented_teacher_send_notloggedin_reminder_message() needs notloggedinhour setting");
@@ -245,10 +243,7 @@ function local_augmented_teacher_send_notloggedin_reminder_message() {
     $timenow = time();
     $notifytime = usergetmidnight($timenow, $CFG->timezone) + ($notloggedinhour * 3600);
 
-    if ($notloggedinlast > $notifytime) {
-        mtrace('Not logged in reminders were already sent today at '.userdate($notloggedinlast, '', $CFG->timezone).'.');
-        return;
-    } else if ($timenow < $notifytime) {
+    if ($timenow < $notifytime) {
         mtrace('Not logged in reminders will be sent at '.userdate($notifytime, '', $CFG->timezone).'.');
         return;
     }
@@ -306,12 +301,25 @@ function local_augmented_teacher_send_notloggedin_reminder_message() {
 
                 $users = get_enrolled_users($context, 'local/augmented_teacher:receivereminder');
 
-
                 foreach ($users as $user) {
+                    // Get's the last time a notification was sent to this user
+                    $notloggedinlast = get_last_time_reminder_was_sent_to_user($reminder->id, $user->id);
+
+                    if ($notloggedinlast !== 0 && should_not_logged_in_notification_be_sent_infinitely() === false) {
+                        mtrace('This user has already received a reminder and the setting: "resend_notloggedin_notification_infinitely" is disabled, preventing sending another one. The last reminder was sent at '.userdate($notloggedinlast, '', $CFG->timezone).'.');
+                        continue;
+                    }
+
+                    if ($notloggedinlast > $notifytime) {
+                        mtrace('Not logged in reminders were already sent today at '.userdate($notloggedinlast, '', $CFG->timezone).'.');
+                        continue;
+                    }
+
                     if (local_augmented_is_suspended($user, $user_enrolments) || local_augmented_is_excluded($user->id, $course->id)) {
                         mtrace("\tCannot send the reminder with id {$reminder->id} to the user with id {$user->id}. Because user is excluded from the course with id {$course->id}");
                         continue;
                     }
+
                     if ($timenow < $reminder->timeinterval + $user->lastaccess) {
                         mtrace("\tCannot send the reminder with id {$reminder->id} to the user with id {$user->id}. User has already been login");
                         continue;
@@ -347,10 +355,11 @@ function local_augmented_teacher_send_notloggedin_reminder_message() {
                         $log->timecreated = time();
                         $DB->insert_record('local_augmented_teacher_log', $log);
 
-                        // Set sent status
-                        if ($has_sent === false) {
-                            $has_sent = true;
-                        }
+                        $DB->insert_record('local_augmented_teacher_sent', (object)[
+                            'userid' => $user->id,
+                            'reminderid' => $reminder->id,
+                            'timesent' => $timenow
+                        ]);
 
                         mtrace("\tRemind with id {$reminder->id} had been sent to the user with id {$user->id}");
                     }
@@ -364,11 +373,18 @@ function local_augmented_teacher_send_notloggedin_reminder_message() {
             }
         }
     }
+}
 
-    // Should only set if the actual message had been sent to the user
-    if ($has_sent) {
-        set_config('notloggedinlast', $timenow, 'local_augmented_teacher');
-    }
+function get_last_time_reminder_was_sent_to_user(int $reminderid, int $userid): int {
+    global $DB;
+
+    $sent_reminders = $DB->get_records('local_augmented_teacher_sent', ['userid' => $userid, 'reminderid' => $reminderid], 'id DESC');
+
+    return array_values($sent_reminders)[0]->timesent ?? 0;
+}
+
+function should_not_logged_in_notification_be_sent_infinitely(): bool {
+    return (bool)get_config('local_augmented_teacher', 'resend_notloggedin_notification_infinitely');
 }
 
 function local_augmented_teacher_send_activity_recommendation() {
