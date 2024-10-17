@@ -17,17 +17,17 @@ jobs:
           - os: ubuntu-20.04
             php: 8.0
             db: mysqli
-            moodle: MOODLE_42_STABLE
+            moodle: MOODLE_402_STABLE
             plugin_branch: MOODLE_42_STABLE
           - os: ubuntu-20.04
             php: 8.1
             db: mysqli
-            moodle: MOODLE_42_STABLE
+            moodle: MOODLE_402_STABLE
             plugin_branch: MOODLE_42_STABLE
           - os: ubuntu-20.04
             php: 8.2
             db: mysqli
-            moodle: MOODLE_42_STABLE
+            moodle: MOODLE_402_STABLE
             plugin_branch: MOODLE_42_STABLE
 
     steps:
@@ -47,6 +47,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           coverage: none
+          ini-values: 'max_input_vars=5000'
 
       - name: Checking out code from moodle/moodle
         uses: actions/checkout@v4
