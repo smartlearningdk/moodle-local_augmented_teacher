@@ -99,7 +99,7 @@ $count = 0;
 
 if ($data = data_submitted()) {
     require_sesskey();
-    $namefields = get_all_user_name_fields(true);
+    $namefields = implode(',', \core_user\fields::get_name_fields());
     foreach ($data as $k => $v) {
         if (preg_match('/^(user|teacher)(\d+)$/', $k, $m)) {
             if (!array_key_exists($m[2], $SESSION->emailto[$id])) {

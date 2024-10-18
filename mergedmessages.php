@@ -58,7 +58,7 @@ $PAGE->set_url('/local/augmented_teacher/mergedmessages.php', array(
 if ($contextid) {
     $context = context::instance_by_id($contextid, MUST_EXIST);
     if ($context->contextlevel != CONTEXT_COURSE) {
-        print_error('invalidcontext');
+        throw new \moodle_exception('invalidcontext', 'error');
     }
     $course = $DB->get_record('course', array('id' => $context->instanceid), '*', MUST_EXIST);
 } else {
@@ -84,7 +84,7 @@ $rolenames[0] = get_string('allparticipants');
 
 // Make sure other roles may not be selected by any means.
 if (empty($rolenames[$roleid])) {
-    print_error('noparticipants');
+    throw new \moodle_exception('noparticipants', 'error');
 }
 
 // No roles to display yet?
@@ -93,7 +93,7 @@ if (empty($rolenames)) {
     if (has_capability('moodle/role:assign', $context)) {
         redirect($CFG->wwwroot.'/'.$CFG->admin.'/roles/assign.php?contextid='.$context->id);
     } else {
-        print_error('noparticipants');
+        throw new \moodle_exception('noparticipants', 'error');
     }
 }
 
@@ -200,7 +200,6 @@ if (isset($hiddenfields['lastaccess'])) {
 // Print settings and things in a table across the top.
 $controlstable = new html_table();
 $controlstable->attributes['class'] = 'controls';
-$controlstable->cellspacing = 0;
 $controlstable->data[] = new html_table_row();
 
 // Print my course menus.
@@ -328,14 +327,14 @@ if ($bulkoperations && $mode === MODE_BRIEF) {
 $tablecolumns[] = 'userpic';
 $tablecolumns[] = 'fullname';
 
-$extrafields = get_extra_user_fields($context);
+$extrafields = \core_user\fields::get_identity_fields($context);
 $tableheaders[] = get_string('userpic');
 $tableheaders[] = get_string('fullnameuser');
 
 if ($mode === MODE_BRIEF) {
     foreach ($extrafields as $field) {
         $tablecolumns[] = $field;
-        $tableheaders[] = get_user_field_name($field);
+        $tableheaders[] = \core_user\fields::get_display_name($field);
     }
 }
 if ($mode === MODE_BRIEF && !isset($hiddenfields['city'])) {
@@ -396,10 +395,11 @@ $joins = array("FROM {user} u");
 $wheres = array();
 
 $userfields = array('username', 'email', 'city', 'country', 'lang', 'timezone', 'maildisplay');
-$mainuserfields = user_picture::fields('u', $userfields);
-$extrasql = get_extra_user_fields_sql($context, 'u', '', $userfields);
+$core_userfields = \core_user\fields::for_userpic();
+$core_userfields->including(...$userfields);
+$selects = $core_userfields->get_sql('u', false, '', 'id', false)->selects;
 
-$select = "SELECT $mainuserfields, COALESCE(ul.timeaccess, 0) AS lastaccess$extrasql";
+$select = "SELECT $selects, COALESCE(ul.timeaccess, 0) AS lastaccess";
 $joins[] = "JOIN ($esql) e ON e.id = u.id"; // Course enrolled users only.
 $joins[] = "LEFT JOIN {user_lastaccess} ul ON (ul.userid = u.id AND ul.courseid = :courseid)";
 $params['courseid'] = $course->id;

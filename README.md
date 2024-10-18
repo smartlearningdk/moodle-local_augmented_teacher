@@ -30,7 +30,7 @@ Allow users to:
 Requirements
 ------------
 
-Moodle 3.2 or greater.
+Moodle 4.2 or greater.
 
 Installation
 ------------

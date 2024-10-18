@@ -3,12 +3,10 @@ name: Integration & Unit test
 on:
   pull_request:
     branches:
-      - master
-      - MOODLE_310_STABLE
-      - MOODLE_39_STABLE
+      - MOODLE_42_STABLE
 
 env:
-  php: 7.4
+  php: 8.0
 
 jobs:
   PHPUnit:
@@ -17,10 +15,20 @@ jobs:
       matrix:
         include:
           - os: ubuntu-20.04
-            php: 7.4
+            php: 8.0
             db: mysqli
-            moodle: MOODLE_310_STABLE
-            plugin_branch: MOODLE_310_STABLE
+            moodle: MOODLE_402_STABLE
+            plugin_branch: MOODLE_42_STABLE
+          - os: ubuntu-20.04
+            php: 8.1
+            db: mysqli
+            moodle: MOODLE_402_STABLE
+            plugin_branch: MOODLE_42_STABLE
+          - os: ubuntu-20.04
+            php: 8.2
+            db: mysqli
+            moodle: MOODLE_402_STABLE
+            plugin_branch: MOODLE_42_STABLE
 
     steps:
       - name: Setting up DB mysql
@@ -39,15 +47,16 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           coverage: none
+          ini-values: 'max_input_vars=5000'
 
       - name: Checking out code from moodle/moodle
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           repository: moodle/moodle
           ref: ${{ matrix.moodle }}
 
       - name: Check out code from ${{ github.repository }}
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           path: ${{ github.workspace }}/local/augmented_teacher
           ref: ${{ github.ref }}
