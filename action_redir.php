@@ -43,11 +43,11 @@ $actions = array(
 );
 
 if (array_search($formaction, $actions) === false) {
-    print_error('unknownuseraction');
+    throw new \moodle_exception('unknownuseraction', 'error');
 }
 
 if (!confirm_sesskey()) {
-    print_error('confirmsesskeybad');
+    throw new \moodle_exception('confirmsesskeybad', 'error');
 }
 
 require_once($formaction);

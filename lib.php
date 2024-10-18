@@ -122,7 +122,7 @@ function local_augmented_teacher_send_reminder_message() {
         return;
     }
 
-    cron_setup_user(null, null, true);
+    \core\cron::setup_user(null, null, true);
 
     $reminders_repo = \local_augmented_teacher\reminders_factory::get_repository();
     $reminders = $reminders_repo->get_activity_reminders();
@@ -250,7 +250,7 @@ function local_augmented_teacher_send_notloggedin_reminder_message() {
 
     mtrace('Processing not logged in reminders...');
 
-    cron_setup_user(null, null, true);
+    \core\cron::setup_user(null, null, true);
 
     $reminders_repo = \local_augmented_teacher\reminders_factory::get_repository();
     $reminders = $reminders_repo->get_notloggedin_reminders();
@@ -413,7 +413,7 @@ function local_augmented_teacher_send_activity_recommendation() {
 
     mtrace('Processing recommended activity messages...');
 
-    cron_setup_user(null, null, true);
+    \core\cron::setup_user(null, null, true);
 
     $reminders_repo = \local_augmented_teacher\reminders_factory::get_repository();
     $reminders = $reminders_repo->get_activity_reminders();
@@ -620,9 +620,9 @@ function local_augmented_teacher_pix_url($imagename, $component=null) {
     global $CFG, $OUTPUT;
     if ($CFG->branch >= 33) { // MDL 3.3+.
         return $OUTPUT->image_url($imagename, $component);
-    } else {
-        return $OUTPUT->pix_url($imagename, $component);
     }
+
+    return $OUTPUT->pix_icon($imagename, '', $component);
 }
 
 function local_augmented_get_first_firstname($firstname) {
