@@ -44,11 +44,11 @@ class reminder_form extends moodleform {
         $mform->setType('message', PARAM_RAW);
         $mform->addRule('message', null, 'required', null, 'client');
 
-        if ($customdata['editorplugin'] == 'atto_texteditor') {
+        if ($customdata['editorplugin'] === 'atto_texteditor' || $customdata['editorplugin'] === 'editor_tiny\editor') {
             $mform->addElement('static', 'shortcodes', get_string('shortcodes', 'local_augmented_teacher'),
-                '<button class="shortcode">{{firstname}}</button> ' .
-                '<button class="shortcode">{{lastname}}</button> ' .
-                '<button class="shortcode">{{lastlogindate}}</button>');
+                '<button class="btn btn-secondary shortcode">{{firstname}}</button> ' .
+                '<button class="btn btn-secondary shortcode">{{lastname}}</button> ' .
+                '<button class="btn btn-secondary shortcode">{{lastlogindate}}</button>');
         } else {
             $mform->addElement('static', 'shortcodes', get_string('shortcodes', 'local_augmented_teacher'),
                 '{{firstname}} {{lastname}} {{lastlogindate}}');

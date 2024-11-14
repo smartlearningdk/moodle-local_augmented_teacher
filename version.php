@@ -25,9 +25,9 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-/** @var stdClass $plugin */
+/** @var object $plugin */
 $plugin->component = 'local_augmented_teacher';
-$plugin->version  = 2024101700;
+$plugin->version  = 2024111400;
 $plugin->requires = 2023042400; // Moodle 4.2 required.
-$plugin->release = '1.6.0';
+$plugin->release = '1.6.1';
 $plugin->maturity = MATURITY_STABLE;
