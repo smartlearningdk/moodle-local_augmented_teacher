@@ -42,14 +42,14 @@ class reminder_form extends moodleform {
         $mform->setType('message', PARAM_RAW);
         $mform->addRule('message', null, 'required', null, 'client');
 
-        if ($customdata['editorplugin'] == 'atto_texteditor') {
+        if ($customdata['editorplugin'] === 'atto_texteditor' || $customdata['editorplugin'] === 'editor_tiny\editor') {
             $mform->addElement('static', 'shortcodes', get_string('shortcodes', 'local_augmented_teacher'),
-                '<button class="shortcode">{{firstname}}</button> ' .
-                '<button class="shortcode">{{lastname}}</button> ' .
-                '<button class="shortcode">{{coursename}}</button> ' .
-                '<button class="shortcode">{{completiondate}}</button> ' .
-                '<button class="shortcode">{{activity}}</button> ' .
-                '<button class="shortcode">{{recommendedactivity}}</button>');
+                '<button class="btn btn-secondary shortcode">{{firstname}}</button> ' .
+                '<button class="btn btn-secondary shortcode">{{lastname}}</button> ' .
+                '<button class="btn btn-secondary shortcode">{{coursename}}</button> ' .
+                '<button class="btn btn-secondary shortcode">{{completiondate}}</button> ' .
+                '<button class="btn btn-secondary shortcode">{{activity}}</button> ' .
+                '<button class="btn btn-secondary shortcode">{{recommendedactivity}}</button>');
         } else {
             $mform->addElement('static', 'shortcodes', get_string('shortcodes', 'local_augmented_teacher'),
                 '{{firstname}} {{lastname}} {{coursename}} {{completiondate}} {{activity}} {{recommendedactivity}}');

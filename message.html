@@ -32,11 +32,11 @@
         :</b></label></td>
     <td>
         <?php
-        if ($editorpluginname == 'atto_texteditor') {
+        if ($editorpluginname === 'atto_texteditor' || $editorpluginname === 'editor_tiny\editor') {
         ?>
-        <button class="shortcode">{{firstname}}</button>
-        <button class="shortcode">{{lastname}}</button>
-        <button class="shortcode">{{coursename}}</button>
+        <button class="btn btn-secondary shortcode">{{firstname}}</button>
+        <button class="btn btn-secondary shortcode">{{lastname}}</button>
+        <button class="btn btn-secondary shortcode">{{coursename}}</button>
         <?php
         } else {
         ?>
