@@ -55,9 +55,11 @@ $PAGE->set_pagetype('course-view-' . $course->format);
 $editor = editors_get_preferred_editor();
 $editorpluginname =  get_class($editor);
 
-if ($editorpluginname == 'atto_texteditor') {
+if ($editorpluginname === 'atto_texteditor') {
     $module = array('name' => 'local_augmented_teacher', 'fullpath' => '/local/augmented_teacher/module.js');
     $PAGE->requires->js_init_call('M.local_augmented_teacher.init_shortcode', null, false, $module);
+} else if ($editorpluginname === 'editor_tiny\editor') {
+    $PAGE->requires->js_call_amd('local_augmented_teacher/shortcode_buttons', 'init');
 }
 
 $PAGE->navbar->add(get_string('recommendactivity', 'local_augmented_teacher'),

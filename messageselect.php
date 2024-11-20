@@ -132,9 +132,11 @@ $PAGE->navbar->add($strtitle);
 $editor = editors_get_preferred_editor();
 $editorpluginname =  get_class($editor);
 
-if ($editorpluginname == 'atto_texteditor') {
+if ($editorpluginname === 'atto_texteditor') {
     $module = array('name' => 'local_augmented_teacher', 'fullpath' => '/local/augmented_teacher/module.js');
     $PAGE->requires->js_init_call('M.local_augmented_teacher.init_shortcode', null, false, $module);
+} else if ($editorpluginname === 'editor_tiny\editor') {
+    $PAGE->requires->js_call_amd('local_augmented_teacher/shortcode_buttons', 'init');
 }
 
 $settingnode = $PAGE->settingsnav->find('local_augmented_teacher', navigation_node::TYPE_SETTING);
@@ -156,7 +158,6 @@ if ($count) {
     }
     echo $OUTPUT->heading($heading);
 }
-
 if (!empty($messagebody) && !$edit && !$deluser && ($preview || $send)) {
     require_sesskey();
     if (count($SESSION->emailto[$id])) {
@@ -235,12 +236,6 @@ if (count($SESSION->emailto[$id])) {
     require("message.html");
 }
 
-$PAGE->requires->yui_module('moodle-core-formchangechecker',
-        'M.core_formchangechecker.init',
-        array(array(
-            'formid' => 'theform'
-        ))
-);
 $PAGE->requires->string_for_js('changesmadereallygoaway', 'moodle');
 
 echo $OUTPUT->footer();
