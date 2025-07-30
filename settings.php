@@ -30,7 +30,7 @@ defined('MOODLE_INTERNAL') || die();
  * @var $hassiteconfig
  */
 
-if ($hassiteconfig){
+if ($hassiteconfig) {
     $settings = new admin_settingpage('local_augmented_teacher_settings',  get_string('pluginname', 'local_augmented_teacher'));
 
     $options = array();
