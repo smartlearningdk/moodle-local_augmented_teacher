@@ -26,8 +26,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * @var $ADMIN
- * @var $hassiteconfig
+ * @var admin_root $ADMIN
+ * @var bool $hassiteconfig
  */
 
 if ($hassiteconfig) {
