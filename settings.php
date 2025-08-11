@@ -25,32 +25,39 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$settings = new admin_settingpage('local_augmented_teacher_settings',  get_string('pluginname', 'local_augmented_teacher'));
+/**
+ * @var admin_root $ADMIN
+ * @var bool $hassiteconfig
+ */
 
-$options = array();
-for ($i = 0; $i < 24; $i++) {
-    $options[$i] = $i;
+if ($hassiteconfig) {
+    $settings = new admin_settingpage('local_augmented_teacher_settings',  get_string('pluginname', 'local_augmented_teacher'));
+
+    $options = array();
+    for ($i = 0; $i < 24; $i++) {
+        $options[$i] = $i;
+    }
+    $settings->add(new admin_setting_configselect('local_augmented_teacher/notloggedinhour',
+            get_string('notloggedinhour', 'local_augmented_teacher'), '', 6, $options)
+    );
+    $settings->add(new admin_setting_configcheckbox('local_augmented_teacher/resend_notloggedin_notification_infinitely',
+            get_string('resend_notloggedin_notification_infinitely', 'local_augmented_teacher'), get_string('resend_notloggedin_notification_infinitely_desc', 'local_augmented_teacher'), true)
+    );
+    $settings->add(new admin_setting_configselect('local_augmented_teacher/recommendactivityhour',
+        get_string('recommendactivityhour', 'local_augmented_teacher'), '', 6, $options)
+    );
+
+    $yesno = [
+        0 => get_string('no'),
+        1 => get_string('yes'),
+    ];
+    $settings->add(new admin_setting_configselect(
+        'local_augmented_teacher/show_send_from_course_in_message',
+        get_string('show_send_from_course_in_message', 'local_augmented_teacher'),
+        get_string('show_send_from_course_in_message_desc', 'local_augmented_teacher'),
+        0,
+        $yesno
+    ));
+
+    $ADMIN->add('localplugins', $settings);
 }
-$settings->add(new admin_setting_configselect('local_augmented_teacher/notloggedinhour',
-        get_string('notloggedinhour', 'local_augmented_teacher'), '', 6, $options)
-);
-$settings->add(new admin_setting_configcheckbox('local_augmented_teacher/resend_notloggedin_notification_infinitely',
-        get_string('resend_notloggedin_notification_infinitely', 'local_augmented_teacher'), get_string('resend_notloggedin_notification_infinitely_desc', 'local_augmented_teacher'), true)
-);
-$settings->add(new admin_setting_configselect('local_augmented_teacher/recommendactivityhour',
-    get_string('recommendactivityhour', 'local_augmented_teacher'), '', 6, $options)
-);
-
-$yesno = [
-    0 => get_string('no'),
-    1 => get_string('yes'),
-];
-$settings->add(new admin_setting_configselect(
-    'local_augmented_teacher/show_send_from_course_in_message',
-    get_string('show_send_from_course_in_message', 'local_augmented_teacher'),
-    get_string('show_send_from_course_in_message_desc', 'local_augmented_teacher'),
-    0,
-    $yesno
-));
-
-$ADMIN->add('localplugins', $settings);
