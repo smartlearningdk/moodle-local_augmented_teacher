@@ -669,7 +669,7 @@ if ($mode === MODE_USERDETAILS) {    // Print simple listing.
                         // because this page is intended for students too.
                         continue;
                     }
-                    $row->cells[1]->text .= get_user_field_name($field) .
+                    $row->cells[1]->text .= \core_user\fields::get_display_name($field) .
                             get_string('labelsep', 'langconfig') . s($user->{$field}) . '<br />';
                 }
                 if (($user->city or $user->country) and (!isset($hiddenfields['city']) or !isset($hiddenfields['country']))) {
