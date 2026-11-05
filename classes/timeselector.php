@@ -127,13 +127,13 @@ class MoodleQuickForm_time_selector extends MoodleQuickForm_group {
 
         $this->_elements = array();
 
-        $this->_elements[] = $this->createFormElement('static', 'from', '', get_string('from'));
+        $this->_elements[] = $this->createFormElement('static', 'from', '', get_string('fromdate', 'moodle'));
         $this->_elements[] = $this->createFormElement('select', 'hour_from', get_string('hour', 'form'), $hours,
             $this->getAttributes(), true);
         $this->_elements[] = $this->createFormElement('select', 'minute_from', get_string('minute', 'form'), $minutes,
             $this->getAttributes(), true);
 
-        $this->_elements[] = $this->createFormElement('static', 'to', '', get_string('to'));
+        $this->_elements[] = $this->createFormElement('static', 'to', '', get_string('todate', 'moodle'));
         $this->_elements[] = $this->createFormElement('select', 'hour_to', get_string('hour', 'form'), $hours,
             $this->getAttributes(), true);
         $this->_elements[] = $this->createFormElement('select', 'minute_to', get_string('minute', 'form'), $minutes,
